@@ -1,0 +1,13 @@
+{% for interface in device.interfaces.all() %}
+{% if interface.enabled == true and "fabric" in interface.tags.names() %}
+{% for ip in interface.ip_addresses.all() %}
+{# leafs - cofigure p2p links to spine #}
+{% if ( (interface.connected_endpoints is defined ) and
+        (interface.mtu is defined and interface.mtu|int > 0 ) and
+        (ip.assigned_object.id == interface.id ) ) %}
+set interfaces {{ interface.name }} mtu {{ interface.mtu }} unit 0 description "to-{{ interface.connected_endpoints[0].device.name }}-{{ interface.connected_endpoints[0].name }}"
+set interfaces {{ interface.name }} unit 0 family inet mtu {{ interface.mtu - 14 }} address {{ ip.address }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,12 @@
+
+{#set policy-options community MY-FAB-COMMUNITY members {{ config_context.0.switch_options.target }}
+set policy-options community T5-COM1 members {{ config_context.0.switch_options.t5 }}
+set switch-options vtep-source-interface lo0.0#}
+{# set switch-options vrf-import MY-FABRIC-IMPORT #}
+set switch-options vrf-target {{ switch_options.target }}
+{# set switch-options vrf-target auto #}
+set switch-options route-distinguisher {{ device.primary_ip.address.ip }}:1
+set routing-options router-id {{ device.primary_ip.address.ip }}
+set forwarding-options storm-control-profiles default all
+set forwarding-options multicast-replication evpn irb oism
+set forwarding-options vxlan-routing overlay-ecmp

@@ -1,0 +1,60 @@
+delete firewall
+set firewall family inet filter re-protect term allow-bfd from source-prefix-list loopbacks
+set firewall family inet filter re-protect term allow-bfd from protocol udp
+set firewall family inet filter re-protect term allow-bfd from destination-port 3784
+set firewall family inet filter re-protect term allow-bfd from destination-port 4784
+set firewall family inet filter re-protect term allow-bfd then accept
+set firewall family inet filter re-protect term allow-ospf from source-prefix-list core-neighbours
+set firewall family inet filter re-protect term allow-ospf from protocol ospf
+set firewall family inet filter re-protect term allow-ospf then accept
+set firewall family inet filter re-protect term allow-bgp-source from source-prefix-list bgp-peers
+set firewall family inet filter re-protect term allow-bgp-source from source-prefix-list bgp-peers-ri
+set firewall family inet filter re-protect term allow-bgp-source from protocol tcp
+set firewall family inet filter re-protect term allow-bgp-source from source-port 179
+set firewall family inet filter re-protect term allow-bgp-source then accept
+set firewall family inet filter re-protect term allow-bgp-destination from source-prefix-list bgp-peers
+set firewall family inet filter re-protect term allow-bgp-destination from source-prefix-list bgp-peers-ri
+set firewall family inet filter re-protect term allow-bgp-destination from protocol tcp
+set firewall family inet filter re-protect term allow-bgp-destination from destination-port 179
+set firewall family inet filter re-protect term allow-bgp-destination then accept
+set firewall family inet filter re-protect term allow-vrrp from destination-address 224.0.0.18/32
+set firewall family inet filter re-protect term allow-vrrp from protocol vrrp
+set firewall family inet filter re-protect term allow-vrrp from protocol ah
+set firewall family inet filter re-protect term allow-vrrp then accept
+set firewall family inet filter re-protect term allow-ssh from source-prefix-list noc-servers
+set firewall family inet filter re-protect term allow-ssh from protocol tcp
+set firewall family inet filter re-protect term allow-ssh from destination-port 22
+set firewall family inet filter re-protect term allow-ssh from destination-port 830
+set firewall family inet filter re-protect term allow-ssh then accept
+set firewall family inet filter re-protect term allow-ntp from source-prefix-list ntp-servers
+set firewall family inet filter re-protect term allow-ntp from source-prefix-list loopback
+set firewall family inet filter re-protect term allow-ntp from protocol udp
+set firewall family inet filter re-protect term allow-ntp from protocol tcp
+set firewall family inet filter re-protect term allow-ntp from port ntp
+set firewall family inet filter re-protect term allow-ntp then accept
+set firewall family inet filter re-protect term allow-snmp from source-prefix-list snmp-servers
+set firewall family inet filter re-protect term allow-snmp from source-prefix-list snmp-servers-ri
+set firewall family inet filter re-protect term allow-snmp from protocol udp
+set firewall family inet filter re-protect term allow-snmp from destination-port 161
+set firewall family inet filter re-protect term allow-snmp then accept
+set firewall family inet filter re-protect term allow-dns from source-prefix-list dns-servers
+set firewall family inet filter re-protect term allow-dns from protocol udp
+set firewall family inet filter re-protect term allow-dns from protocol tcp
+set firewall family inet filter re-protect term allow-dns from source-port 53
+set firewall family inet filter re-protect term allow-dns then accept
+set firewall family inet filter re-protect term allow-igmp-snooping from protocol igmp
+set firewall family inet filter re-protect term allow-igmp-snooping then accept
+set firewall family inet filter re-protect term allow-traceroute-udp from protocol udp
+set firewall family inet filter re-protect term allow-traceroute-udp from destination-port 33434-33534
+set firewall family inet filter re-protect term allow-traceroute-udp then accept
+set firewall family inet filter re-protect term allow-icmp from protocol icmp
+set firewall family inet filter re-protect term allow-icmp from icmp-type echo-request
+set firewall family inet filter re-protect term allow-icmp from icmp-type echo-reply
+set firewall family inet filter re-protect term allow-icmp then accept
+set firewall family inet filter re-protect term allow-icmp-error from protocol icmp
+set firewall family inet filter re-protect term allow-icmp-error from icmp-type time-exceeded
+set firewall family inet filter re-protect term allow-icmp-error from icmp-type unreachable
+set firewall family inet filter re-protect term allow-icmp-error then accept
+set firewall family inet filter re-protect term discard then discard
+{# add filter to loopback interface #}
+set interfaces lo0 unit 0 family inet filter input re-protect

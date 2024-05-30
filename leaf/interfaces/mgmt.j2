@@ -1,0 +1,19 @@
+{% set interface_ids = [] %}
+{% for interface in device.interfaces.all() %}
+{% if interface.enabled == true %}
+{% for ip in interface.ip_addresses.all() %}
+{% if ip.status == 'active' and ( ('em0' in interface.name) ) %}
+{% if ip.family == 4 %}
+{% set family = 'inet' %}
+{% else %}
+{% set family = 'inet6' %}
+{% endif %}
+{% if not interface.id in interface_ids %}
+set interfaces {{ interface.name }} description "{{ interface.name }}"
+{% set tmp = interface_ids.append(interface.id) %}
+{% endif %}
+set interfaces {{ interface.name }} unit 0 family {{ family }} address {{ ip.address }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}

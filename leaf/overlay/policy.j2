@@ -1,0 +1,51 @@
+
+delete policy-options 
+{% if device.role.name == "spine" or device.role.name == "leaf" %}
+set policy-options policy-statement LBPP then load-balance per-packet
+{#
+set policy-options community MY-FAB-COMMUNITY members {{ config_context.0.switch_options.target }}
+set policy-options community T5-COM1 members {{ config_context.0.switch_options.t5 }}
+set policy-options policy-statement MY-FABRIC-IMPORT term t1 from community MY-FAB-COMMUNITY
+set policy-options policy-statement MY-FABRIC-IMPORT term t1 then accept
+set policy-options policy-statement MY-FABRIC-IMPORT term t5 from community T5-COM1
+set policy-options policy-statement MY-FABRIC-IMPORT term t5 then accept
+#}
+{% endif %}
+{% if device.role.name == "leaf" %}
+set policy-options policy-statement POL_VRF-REDIST term 1 then accept
+set policy-options policy-statement POL_VRF-REDIST term 1 from protocol bgp
+set policy-options policy-statement POL_VRF-REDIST term 2 then accept
+set policy-options policy-statement POL_VRF-REDIST term 2 from protocol direct
+set policy-options policy-statement POL_VRF-REDIST term 2 from protocol static
+set policy-options policy-statement POL_VRF-REDIST term 99 then reject
+{#set policy-options policy-statement type5_to_ospf_policy term 0 from route-filter 0.0.0.0/0 prefix-length-range /32-/32
+set policy-options policy-statement type5_to_ospf_policy term 0 from protocol evpn
+set policy-options policy-statement type5_to_ospf_policy term 0 then reject
+set policy-options policy-statement type5_to_ospf_policy term 1 then accept
+set policy-options policy-statement type5_to_ospf_policy term 1 then tag 111
+set policy-options policy-statement type5_to_ospf_policy term 1 from protocol evpn
+set policy-options policy-statement type5_to_ospf_policy term 1 from protocol direct
+set policy-options policy-statement type5_to_ospf_policy term 1 from protocol static
+set policy-options policy-statement type5_to_ospf_policy term 1 then external type 1
+set policy-options policy-statement type5_to_bgp_policy term 0 from route-filter 0.0.0.0/0 prefix-length-range /32-/32
+set policy-options policy-statement type5_to_bgp_policy term 0 from protocol evpn
+set policy-options policy-statement type5_to_bgp_policy term 0 then reject
+set policy-options policy-statement type5_to_bgp_policy term 1 then accept
+set policy-options policy-statement type5_to_bgp_policy term 1 from protocol evpn
+set policy-options policy-statement type5_to_bgp_policy term 1 from protocol direct
+set policy-options policy-statement type5_to_bgp_policy term 1 from protocol static
+set policy-options policy-statement from_ospf term 1 from tag 111
+set policy-options policy-statement from_ospf term 1 then reject
+set policy-options policy-statement from_ospf term 2 then accept
+#}
+set policy-options policy-statement FILTER-ALL term 1 then reject
+set policy-options policy-statement ALLOW-ALL term 1 then accept
+{% endif %}
+{# Legacy config RE-protect policy #}
+set policy-options prefix-list ntp-servers apply-path "system ntp server <*>"
+set policy-options prefix-list bgp-peers apply-path "protocols bgp group <*> neighbor <*>"
+set policy-options prefix-list snmp-servers apply-path "snmp community <*> clients <*>"
+set policy-options prefix-list dns-servers apply-path "system name-server <*>"
+set policy-options prefix-list loopback apply-path "interfaces lo0 unit 0 family inet address <*>"
+set policy-options prefix-list bgp-peers-ri apply-path "routing-instances <*> protocols bgp group <*> neighbor <*>"
+set policy-options prefix-list snmp-servers-ri apply-path "snmp community <*> routing-instance <*> clients <*>"

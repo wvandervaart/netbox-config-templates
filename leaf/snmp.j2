@@ -1,0 +1,5 @@
+delete snmp
+set snmp contact "{{ snmp.contact }}"
+set snmp location "region: {{ device.site.region.slug }} dc: {{ device.site.slug }} room: {{ device.location.slug }} rack: {{ device.rack.name }}"
+set snmp routing-instance-access
+{# legacy static SNMP config #}

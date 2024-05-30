@@ -1,0 +1,30 @@
+{% set ns = namespace() %}
+{% set interface_ids = [] %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.enabled == true and ('lo0' in interface.name) %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% if ip.status == 'active' and ('lo0' in interface.name) %}
+                {% if ip.family == 4 %}
+                    {% set family = 'inet' %}
+                {% else %}
+                    {% set family = 'inet6' %}
+                {% endif %}
+                {% if not interface.id in interface_ids %}
+                    {% if interface.vrf.name is defined %}
+                        {% set vrfname = interface.vrf.name %}
+                    {% else %}
+                        {% set vrfname = "global" %}
+                    {% endif %}
+set interfaces {{ interface.name }} description "Loopback :: vrf:{{ vrfname }}"
+                    {% if vrfname == "global" %}
+set interfaces {{ interface.name }} family inet filter input re-protect
+                    {% endif %}
+                    {% set tmp = interface_ids.append(interface.id) %}
+                {% endif %}
+                {% if (ip.address is defined) %}
+set interfaces {{ interface.name }} family {{ family }} address {{ ip.address }}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}

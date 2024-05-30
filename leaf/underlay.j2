@@ -1,0 +1,25 @@
+{# determine if device is spine or leaf and set correct OSPF priority #}
+{% if device.role.name == "spine" %}
+    {% set PRIO = '254' %}
+{% else %}
+    {% set PRIO = '0' %}
+{% endif %}
+{# set some load-balancing options to do ECMP #}
+delete routing-options forwarding-table export
+set routing-options forwarding-table export LBPP
+{# delete the current ospf config #}
+delete protocols ospf
+{# loop through interfaces and configure OSPF on the correct ones #}
+{% for interface in device.interfaces.all() %}
+    {% if interface.enabled == true and "fabric" in interface.tags.names() %}
+        {% if 'lo' in interface.name %}
+            {% set PRIO = '0' %}
+set protocols ospf area {{ ospf.area }} interface {{ interface.name }} passive
+        {% else %}
+set protocols ospf area {{ ospf.area }} interface {{ interface.name }}.0 interface-type p2p
+set protocols ospf area {{ ospf.area }} interface {{ interface.name }}.0 bfd-liveness-detection minimum-interval 300
+set protocols ospf area {{ ospf.area }} interface {{ interface.name }}.0 bfd-liveness-detection multiplier 3
+        {% endif %}
+    {% endif %}
+{% endfor %}
+set protocols ospf reference-bandwidth 1000g

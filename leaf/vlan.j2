@@ -1,0 +1,32 @@
+delete vlans
+{% set nb_id_vlan_list = [] %}
+{% set desc = "" %}
+{% for interface in device.interfaces.all() %}
+{% if interface.tagged_vlans is defined %}
+{% for tagged_vlan in interface.tagged_vlans.all() %}
+{% if tagged_vlan not in nb_id_vlan_list %}
+{% set tmp = nb_id_vlan_list.append(tagged_vlan)%}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if interface.untagged_vlan != None %}
+{% if interface.untagged_vlan not in nb_id_vlan_list %}
+{% set tmp = nb_id_vlan_list.append(interface.untagged_vlan) %}
+{% endif %}
+{% endif %}
+{% if 'irb' in interface.name %}
+set vlans {{ interface.untagged_vlan.name }} l3-interface {{ interface.name }} 
+{% endif %}
+{% endfor %}
+{% for vlan in nb_id_vlan_list %}
+{% if vlan.description == "" %}
+{% set desc = vlan.name %}
+{% else %}
+{% set desc = vlan.description %}
+{% endif %}
+{% if vlan.l2vpn_termination == None %}
+set vlans {{ vlan.name }} description "{{ desc }}" vlan-id {{ vlan.vid }}
+{% else %}
+set vlans {{ vlan.name }} description "{{ desc }}" vlan-id {{ vlan.vid }} vxlan vni {{ vlan.l2vpn_termination.l2vpn.identifier }}
+{% endif %}
+{% endfor %}
