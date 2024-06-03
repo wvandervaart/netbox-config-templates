@@ -1,0 +1,42 @@
+#jinja2: trim_blocks:"True", lstrip_blocks:"True"
+{# find policies applicable to current device #}
+{% set pol_ids = [] %}
+{% for peer in nb_get_bgpsessions.results|map(attribute='item')|list|map(attribute='value') %}
+{% if peer.import_policies is iterable %}
+{% for policy in peer.import_policies %}
+{% if policy.id not in pol_ids %}
+{% do pol_ids.append(policy.id) %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if peer.export_policies is iterable %}
+{% for policy in peer.export_policies %}
+{% if policy.id not in pol_ids %}
+{% do pol_ids.append(policy.id) %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% set match = "" %}
+{% set action = {"permit": "accept", "deny": "reject"} %}
+{% for policy in nb_get_bgprp.results|map(attribute='item')|list|map(attribute='value') %}
+{% if policy.routing_policy.id in pol_ids %}
+{% if policy.match_custom is defined  and policy.match_custom is iterable %}
+{% for pol in policy.match_custom %}
+{% if pol["value"] is defined %}
+{% set match = pol["name"] + " " + pol["prefix"] + " " + pol["match-type"] + " " + pol["value"] %}
+{% else %}
+{% set match = pol["name"] + " " + pol["prefix"] + " " + pol["match-type"] %}
+{% endif %}
+{% if match != "" %}
+set policy-options policy-statement {{ policy.routing_policy.name }} term {{policy.index }} from {{ match }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if policy.set_actions is mapping %}
+set policy-options policy-statement {{ policy.routing_policy.name }} term {{policy.index }} then {{ policy.set_actions.name }} {{ policy.set_actions.action }}
+{% else %}
+set policy-options policy-statement {{ policy.routing_policy.name }} term {{policy.index }} then {{ action[policy.action] }}
+{% endif %}
+{% endif %}
+{% endfor %}

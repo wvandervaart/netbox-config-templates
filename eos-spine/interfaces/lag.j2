@@ -1,0 +1,41 @@
+{% set ns = namespace(dev_count=0) %}
+{% set lagspeed = {} %}
+{% for interface in nb_get_interfaces.results|map(attribute='item')|list|map(attribute='value') %}
+    {% if interface.enabled == true %}
+        {% if  (interface.lag is defined and interface.lag != None )  %}
+        {% if interface.type.value is defined %}
+        {# ugly truncate, need to fix for different portspeeds (1g/100g) #}
+        {% set speed = interface.type.label.split(' ') %}
+        {% set speed = speed[1] | replace('(','') | replace('E)','') %}
+        {% set _ = lagspeed.update({interface.lag.name: speed|lower})%}
+        {% endif %}
+interface {{ interface.name }}
+   description "{{ interface.lag.name }}"
+   no switchport
+   channel-group 2 mode active
+   {% if lagspeed[interface.lag.name] == "25g" %}
+   speed forced 25gfull
+   {% endif %}
+!
+        {% endif %}
+        {% if interface.type.value == "lag" %}
+            {% for ip in nb_get_ips.results|map(attribute='item')|list|map(attribute='value') %}
+            {# leafs - cofigure p2p links to spine #}
+                {% if ip.assigned_object.id is defined %}
+                    {% if ( (interface.mtu is defined and interface.mtu|int > 0 ) and
+                            (ip.assigned_object.id == interface.id ) ) %}
+interfaces {{ interface.name }}
+   description {{ interface.description }}
+   mtu {{ interface.mtu }}
+   no switchport
+   ip address {{ ip.address }}
+   ip ospf neighbor bfd
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endif %}
+{% endfor %}

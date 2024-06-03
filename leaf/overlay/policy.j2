@@ -45,7 +45,17 @@ set policy-options policy-statement ALLOW-ALL term 1 then accept
 set policy-options prefix-list ntp-servers apply-path "system ntp server <*>"
 set policy-options prefix-list bgp-peers apply-path "protocols bgp group <*> neighbor <*>"
 set policy-options prefix-list snmp-servers apply-path "snmp community <*> clients <*>"
+set policy-options prefix-list noc-servers 10.0.253.1/32
+set policy-options prefix-list noc-servers 10.0.253.10/32
+set policy-options prefix-list noc-servers 10.0.253.124/32
+set policy-options prefix-list noc-servers 10.0.254.0/24
+set policy-options prefix-list noc-servers 10.100.0.252/32
+set policy-options prefix-list noc-servers 10.100.0.253/32
 set policy-options prefix-list dns-servers apply-path "system name-server <*>"
 set policy-options prefix-list loopback apply-path "interfaces lo0 unit 0 family inet address <*>"
+set policy-options prefix-list core-neighbours 10.0.1.0/24
+set policy-options prefix-list core-neighbours 10.0.2.0/24
+set policy-options prefix-list loopbacks 10.0.254.0/24
 set policy-options prefix-list bgp-peers-ri apply-path "routing-instances <*> protocols bgp group <*> neighbor <*>"
 set policy-options prefix-list snmp-servers-ri apply-path "snmp community <*> routing-instance <*> clients <*>"
+set policy-options prefix-list core-neighbours-SGBC 172.16.199.0/24

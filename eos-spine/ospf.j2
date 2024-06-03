@@ -1,0 +1,24 @@
+#jinja2: trim_blocks:"True", lstrip_blocks:"True"
+{% set loopback = "Loopback0"%}
+router ospf 1
+{% set ns = namespace() %}
+{% set interface_ids = [] %}
+{% for interface in nb_get_interfaces.results|map(attribute='item')|list|map(attribute='value') %}
+    {% if interface.device.name == inventory_hostname and interface.enabled == true and ('Loopback0' in interface.name) %}
+        {% for ip in nb_get_ips.results|map(attribute='item')|list|map(attribute='value') %}
+            {% if ip.assigned_object.id is defined and ip.assigned_object.id|int != 0  and ip.status.value == 'active' and (ip.assigned_object.id == interface.id ) %}
+                {% if not interface.id in interface_ids %}
+                    {% do interface_ids.append(interface.id) %}
+                {% endif %}
+                {% if (ip.address is defined) %}
+                {% set ipwom = ip.address.split('/')%}
+   router-id {{ ipwom[0] }}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}
+   auto-cost reference-bandwidth 1000000
+   passive-interface {{loopback}}
+   max-lsa 12000
+!

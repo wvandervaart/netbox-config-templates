@@ -1,0 +1,12 @@
+#jinja2: trim_blocks:"True", lstrip_blocks:"True"
+{% if 'interfaces' in config_context.0.sflow %}
+{% set loopbacks = nb_get_loopbacks.results|map(attribute='item')|list|map(attribute='value') %}
+{% set ipwom = loopbacks[0].address.split('/')[0] %}
+set protocols sflow agent-id {{ ipwom }}
+set protocols sflow source-ip {{ ipwom }}
+set protocols sflow sample-rate egress 32768
+set protocols sflow collector {{ config_context.0.sflow.collector }} udp-port {{ config_context.0.sflow.port }}
+{% for interface in config_context.0.sflow.interfaces %}
+set protocols sflow interfaces {{ interface }}
+{% endfor %}
+{% endif %}

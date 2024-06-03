@@ -1,0 +1,65 @@
+#jinja2: trim_blocks:"True", lstrip_blocks:"True"
+router bgp {{ config_context.0.bgp.asn }}
+{% for ips in nb_get_vteps.results %}
+    {% set ip = ips.item.value %}
+    {% set ipwom = ip.address.split('/') %}
+    {# if ip is on current device #}
+    {% if inventory_hostname == ip.assigned_object.device.name %}
+   router-id {{ ipwom[0] }}
+    {%endif%}
+{%endfor%}
+   maximum-paths 8 ecmp 16
+{% set ri = "" %}
+{% set int_pgids = [] %}
+{% set ext_pgids = [] %}
+{% set pg_vrf = {} %}
+{% for peer in nb_get_bgpsessions.results|map(attribute='item')|list|map(attribute='value') %}
+    {% set ri = "" %}
+    {% set vrf = nb_get_ips.results|map(attribute='item')|list|map(attribute='value')|selectattr("id", "equalto", peer.local_address.id ) %}
+    {% if vrf.0.vrf.name is defined %}
+        {% set test = pg_vrf.update({peer.peer_group.id: vrf.0.vrf.name}) %}
+        {% set ri = "routing-instances " + vrf.0.vrf.name + " "%}
+    {% endif %}
+    {% if peer.remote_as.asn == peer.local_as.asn %}
+        {% do int_pgids.append(peer.peer_group.id) %}
+        {% set ipwom = peer.remote_address.address.split('/')%}
+   neighbor {{ ipwom[0] }} peer group {{ peer.peer_group.name }}
+{# set {{ri}}protocols bgp group {{ peer.peer_group.name }} neighbor {{ ipwom[0] }} #}
+    {% else %}
+        {% do ext_pgids.append(peer.peer_group.id) %}
+        {% set ipwom = peer.remote_address.address.split('/')%}
+   neighbor {{ ipwom[0] }} remote-as {{ peer.remote_as.asn }}
+    {% endif %}
+    {% if peer.description is defined and peer.description != "" %}
+   neighbor {{ ipwom[0] }} description "{{peer.description}}"
+    {% endif %}
+{% endfor %}
+{% for pg in nb_get_bgppeergroup.results|map(attribute='item')|list|map(attribute='value') %}
+{% if pg.id in int_pgids or pg.id in ext_pgids %}
+    {% if pg.id in int_pgids %}
+        {% set type = 'internal' %}
+    {% else %}
+        {% set type = 'external' %}
+    {% endif %}
+   neighbor {{ pg.name }} peer group
+    {% if pg.custom_fields.AUTH_KEY is defined and pg.custom_fields.AUTH_KEY is string  %}
+   neighbor {{ pg.name }} password 7 {{ pg.custom_fields.AUTH_KEY }}
+    {% endif %}
+    {% if pg.custom_fields.PREFIX_LIMIT is defined and pg.custom_fields.PREFIX_LIMIT is integer  %}
+   neighbor {{ pg.name }} maximum-routes {{ pg.custom_fields.PREFIX_LIMIT }}
+    {% endif %}
+    {% if pg.name == "SPINE" or pg.name == "LEAF"%}
+   neighbor {{ pg.name }} remote-as 49206
+   neighbor {{ pg.name }} rib-in pre-policy retain all
+   neighbor {{ pg.name }} route-reflector-client
+   neighbor {{ pg.name }} send-community extended
+   neighbor {{ pg.name }} route-reflector-client
+   address-family evpn
+     neighbor {{ pg.name }} activate
+    !
+    {% endif %}
+   address-family ipv4
+     no neighbor {{ pg.name }} activate
+{% endif %}
+{% endfor %}
+!

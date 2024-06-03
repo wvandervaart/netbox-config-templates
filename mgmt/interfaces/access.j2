@@ -1,0 +1,17 @@
+{% for interface in device.interfaces.all() %}
+{% if interface.enabled == true and interface.type != "lag" and ('irb' not in interface.name) %}
+{% if ( (interface.mode is defined and interface.mode == "access") and
+        (interface.untagged_vlan.id is defined) and
+        (interface.mtu is defined and interface.mtu|int > 0) ) %}
+set interfaces {{ interface.name }} description "{{ interface.description }}" mtu {{ interface.mtu }} unit 0 family ethernet-switching interface-mode access vlan members {{ interface.untagged_vlan.name }}
+{% elif ( (interface.mode is defined and interface.mode == "tagged") and
+        (interface.tagged_vlans is defined) and
+        (interface.mtu is defined and interface.mtu|int > 0) ) %}
+{% set tagged_vlan = [] %}
+{% for tagged_vlans in interface.tagged_vlans.all() %}
+{% set tmp = tagged_vlan.append(tagged_vlans.name) %}
+{% endfor %}
+set interfaces {{ interface.name }} description "{{ interface.description }}" mtu {{ interface.mtu }} unit 0 family ethernet-switching interface-mode trunk vlan members {{ tagged_vlan|replace(",", "")|replace("'", "") }}
+{% endif %}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,43 @@
+{% set ns = namespace(dev_count=0) %}
+{% set lagspeed = {} %}
+{% set mapping = ({"1000base-t":"1g","25gbase-x-sfp28":"25g","10gbase-x-sfpp":"10g","100gbase-x-qsfp28":"100g"}) %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.enabled == true %}
+        {% if  (interface.lag is defined and interface.lag != None )  %}
+        {% if interface.type is defined %}
+        {# ugly truncate, need to fix for different portspeeds (1g/100g) #}
+        {% set speed = mapping[interface.type] %}
+        {% set _ = lagspeed.update({interface.lag.name: speed|lower})%}
+        {% endif %}
+set interfaces {{ interface.name }} ether-options 802.3ad {{interface.lag.name }}
+set interfaces {{ interface.name }} description "{{ interface.description }}"
+        {% endif %}
+        {% if interface.type == "lag" %}
+            {% set ns.dev_count = ns.dev_count + 1 %}
+set interfaces {{ interface.name }} aggregated-ether-options lacp active
+set interfaces {{ interface.name }} aggregated-ether-options lacp periodic fast
+set interfaces {{ interface.name }} aggregated-ether-options link-speed {{ lagspeed[interface.name] }}
+set interfaces {{ interface.name }} description "{{ interface.description }}"
+            {% if ( (interface.mode is defined and interface.mode == "access") and
+            (interface.untagged_vlan.id is defined) and
+            (interface.mtu is defined and interface.mtu|int > 0) ) %}
+set interfaces {{ interface.name }} mtu {{ interface.mtu }}
+set interfaces {{ interface.name }} mtu {{ interface.mtu }} unit 0 family ethernet-switching interface-mode access 
+set interfaces {{ interface.name }} mtu {{ interface.mtu }} unit 0 family ethernet-switching vlan members {{ interface.untagged_vlan.name }}
+            {% elif ( (interface.mode is defined and interface.mode == "tagged") and
+            (interface.tagged_vlans is defined) and
+            (interface.mtu is defined and interface.mtu|int > 0) ) %}
+            {% set tagged_vlan = [] %}
+            {% for tagged_vlans in interface.tagged_vlans.all() %}
+                {% set tmp = tagged_vlan.append(tagged_vlans.name) %}
+            {% endfor %}
+set interfaces {{ interface.name }} mtu {{ interface.mtu }}
+set interfaces {{ interface.name }} unit 0 family ethernet-switching interface-mode trunk
+set interfaces {{ interface.name }} unit 0 family ethernet-switching vlan members {{ tagged_vlan|replace(",", "")|replace("'", "") }}
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+{% if ns.dev_count > 0 %}
+set chassis aggregated-devices ethernet device-count {{ ns.dev_count }}
+{%endif%}

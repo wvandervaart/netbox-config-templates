@@ -1,0 +1,42 @@
+{# set source-ip variable #}
+{% set loopback = "Loopback0"%}
+transceiver qsfp default-mode 4x10G
+service routing protocols model multi-agent
+service unsupported-transceiver 20181031_NEP_NL af56431c
+hostname {{ inventory_hostname }}
+!
+no aaa root
+!
+aaa authorization exec default local
+aaa authorization commands all default local
+!
+{% for user in users.copmany %}
+    {% for system in user.systems %}
+        {% if system._name is defined and system._name == 'arista' %}
+            {% if user.arista_pw is defined %}
+username {{ user._name }} privilege 15 role {{ system.class }} secret sha512 {{ user.arista_pw }}
+                {% if user.pubkey is defined and user.pubkeytype != "encrypted-password" %}
+username {{ user._name }} ssh-key {{ user.pubkey }}
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{% for ntp in utility.ntp %}
+ntp server {{ ntp }} local-interface {{loopback}}
+{% endfor %}
+clock timezone {{ utility.timezone }}
+{% for ns in utility.dns %}
+ip name-server {{ ns }}
+{% endfor %}
+!
+{% for syslog in utility.syslog %}
+logging host {{ syslog._name }} 514
+logging source-interface {{loopback}}
+{% endfor %}
+!
+{# VSTP config #}
+spanning-tree mode mstp
+!
+ip routing
+!

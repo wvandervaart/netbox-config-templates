@@ -1,0 +1,5 @@
+{% if manual_config is defined %}
+    {% for line in manual_config %}
+{{ line }}
+    {% endfor %}
+{% endif %}

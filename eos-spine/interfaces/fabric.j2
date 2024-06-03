@@ -1,0 +1,19 @@
+{% for interface in device.interfaces.all() %}
+{% if interface.enabled == true and "fabric" in interface.tags.names() and interface.type != "lag" %}
+{% for ip in interface.ip_addresses.all() %}
+{# leafs - cofigure p2p links to spine #}
+{% if ( (interface.connected_endpoints is defined ) and
+        (interface.mtu is defined and interface.mtu|int > 0 )  ) %}
+interface {{ interface.name }}
+   description "to-{{ interface.connected_endpoints[0].device.name }}-{{ interface.connected_endpoints[0].name }}"
+   mtu {{ interface.mtu }}
+   no switchport
+   ip address {{ ip.address }}
+   ip ospf neighbor bfd
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}

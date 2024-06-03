@@ -1,5 +1,7 @@
 delete firewall
 set firewall family inet filter re-protect term allow-bfd from source-prefix-list loopbacks
+set firewall family inet filter re-protect term allow-bfd from source-prefix-list core-neighbours
+set firewall family inet filter re-protect term allow-bfd from source-prefix-list core-neighbours-SGBC
 set firewall family inet filter re-protect term allow-bfd from protocol udp
 set firewall family inet filter re-protect term allow-bfd from destination-port 3784
 set firewall family inet filter re-protect term allow-bfd from destination-port 4784
