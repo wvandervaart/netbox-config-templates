@@ -1,0 +1,12 @@
+
+{% set interface = device.interfaces.get(name="lo0.0")%}
+{% if "vtep" in interface.tags.names() %}
+    {% set id = interface.ip_addresses.all()[0].address.ip %}
+set routing-instances LAYER2 instance-type mac-vrf
+set routing-instances LAYER2 protocols evpn encapsulation vxlan
+set routing-instances LAYER2 vtep-source-interface lo0.0
+set routing-instances LAYER2 vtep-source-interface inet
+set routing-instances LAYER2 service-type vlan-aware
+set routing-instances LAYER2 route-distinguisher {{ id }}:1
+set routing-instances LAYER2 vrf-target {{ switch_options.target }}
+{% endif %}

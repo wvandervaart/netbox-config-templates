@@ -1,0 +1,49 @@
+router bgp {{ bgp.asn }}
+   router-id {{ device.primary_ip.address.ip }}
+   maximum-paths 8 ecmp 16
+{% set ri = "" %}
+{% set int_pgids = [] %}
+{% set ext_pgids = [] %}
+{% set pg_vrf = {} %}
+{% for peer in netbox_bgp.BGPSession.objects.filter(device=device) %}
+    {% if peer.remote_as.asn == peer.local_as.asn %}
+        {% set _ = int_pgids.append(peer.peer_group.id) %}
+   neighbor {{ peer.remote_address.address.ip }} peer group {{ peer.peer_group.name }}
+{# set {{ri}}protocols bgp group {{ peer.peer_group.name }} neighbor {{ ipwom[0] }} #}
+    {% else %}
+        {% set _ = ext_pgids.append(peer.peer_group.id) %}
+   neighbor {{ peer.remote_address.address.ip }} remote-as {{ peer.remote_as.asn }}
+    {% endif %}
+    {% if peer.description is defined and peer.description != "" %}
+   neighbor {{ peer.remote_address.address.ip }} description {{peer.description}}
+    {% endif %}
+{% endfor %}
+{% for pg in netbox_bgp.BGPPeerGroup.objects.all() %}
+{% if pg.id in int_pgids or pg.id in ext_pgids %}
+    {% if pg.id in int_pgids %}
+        {% set type = 'internal' %}
+    {% else %}
+        {% set type = 'external' %}
+    {% endif %}
+   neighbor {{ pg.name }} peer group
+    {% if pg.cf.AUTH_KEY is defined and pg.cf.AUTH_KEY is string  %}
+   neighbor {{ pg.name }} password 7 {{ pg.cf.AUTH_KEY }}
+    {% endif %}
+    {% if pg.cf.PREFIX_LIMIT is defined and pg.cf.PREFIX_LIMIT is integer  %}
+   neighbor {{ pg.name }} maximum-routes {{ pg.cf.PREFIX_LIMIT }}
+    {% endif %}
+    {% if pg.name == "SPINE" or pg.name == "LEAF"%}
+   neighbor {{ pg.name }} remote-as 49206
+   neighbor {{ pg.name }} rib-in pre-policy retain all
+   neighbor {{ pg.name }} route-reflector-client
+   neighbor {{ pg.name }} send-community extended
+   neighbor {{ pg.name }} route-reflector-client
+   address-family evpn
+     neighbor {{ pg.name }} activate
+    !
+    {% endif %}
+   address-family ipv4
+     no neighbor {{ pg.name }} activate
+{% endif %}
+{% endfor %}
+!

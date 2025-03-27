@@ -1,0 +1,55 @@
+
+{% set ns = namespace(enabled_vrfs=[],interface=None) %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.vrf.id is defined %}
+        {% if interface.enabled == true %}
+            {% if interface.vrf not in ns.enabled_vrfs %}
+                {% set _ = ns.enabled_vrfs.append(interface.vrf) %}
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+{% for vrf in ns.enabled_vrfs %}
+    {% if vrf.name != "mgmt_junos" and 'VNI' in vrf.cf and vrf.cf.VNI != None %}
+set routing-instances {{ vrf.name }} instance-type vrf
+        {% set ns.interface = None %}
+        {% for iface in device.interfaces.filter(vrf=vrf) %}
+            {% if 'lo0' in iface.name %}
+                {% set ns.interface = iface %}
+            {% endif %}
+        {% endfor %}
+        {% if ns.interface != None %}
+            {% set id = ns.interface.ip_addresses.all()[0].address.ip %}
+        {% else %}
+            {% set id = device.primary_ip.address.ip %}
+        {% endif %}
+set routing-instances {{ vrf.name }} routing-options router-id {{ id }}
+set routing-instances {{ vrf.name }} route-distinguisher {{ id }}:{{ vrf.rd }}
+        {% if vrf.import_targets is defined %}
+            {% for target in vrf.import_targets.all() %}
+set routing-instances {{ vrf.name }} vrf-target import target:{{ target.name }}
+            {% endfor %}
+        {% endif %}
+        {% if vrf.export_targets is defined %}
+            {% for target in vrf.export_targets.all() %}
+set routing-instances {{ vrf.name }} vrf-target export target:{{ target.name }}
+            {% endfor %}
+        {% endif %}
+set routing-instances {{ vrf.name }} vrf-table-label
+        {% if 'VNI' in vrf.cf and vrf.cf.VNI != None and "fabric" in device.tags.names() %}
+set routing-instances {{ vrf.name }} protocols evpn ip-prefix-routes reject-asymmetric-vni
+set routing-instances {{ vrf.name }} protocols evpn ip-prefix-routes advertise direct-nexthop
+set routing-instances {{ vrf.name }} protocols evpn ip-prefix-routes vni {{ vrf.cf.VNI.identifier }}
+set routing-instances {{ vrf.name }} protocols evpn ip-prefix-routes encapsulation vxlan
+set routing-instances {{ vrf.name }} protocols evpn ip-prefix-routes export {{ vrf.cf.VNI.cf.EXPORT_POLICY }}
+        {% endif %}
+        {% for interface in device.interfaces.all() %}
+            {% if interface.vrf.id is defined %}
+                {% if interface.vrf.id == vrf.id %}
+set routing-instances {{ vrf.name }} interface {{ interface.name }}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+set routing-instances {{ vrf.name }} routing-options multipath
+    {% endif %}
+{% endfor %}

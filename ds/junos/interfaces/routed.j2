@@ -1,0 +1,33 @@
+{% set interface_ids = [] %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.enabled == true and ('irb' not in interface.name) and ('mgmt' not in interface.name) and ('vme' not in interface.name) and ('lo' not in interface.name) and "fabric" not in interface.tags.names() %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% if ip.family == 4 %}
+                {% set family = 'inet' %}
+            {% else %}
+                {% set family = 'inet6' %}
+            {% endif %}
+            {% if '.' in interface.name %}
+                {% set temptag = interface.name.split('.')%}
+                {% set name = temptag[0]%}
+                {% set tag = temptag[1]%}
+            {% else %}
+                {% set tag = '0'%}
+                {% set name = interface.name%}
+            {% endif %}
+            {% if not interface.id in interface_ids %}
+                {%if interface.connected_endpoints[0] is defined %}
+set interfaces {{ name }} mtu {{ interface.mtu }} unit {{tag}} description "to-{{ interface.connected_endpoints[0].device.name }}-{{ interface.connected_endpoints[0].name }}"
+                {% else %}
+set interfaces {{ name }} mtu {{ interface.mtu }} unit {{tag}} description "{{ interface.description }}"
+                {% endif %}
+                {% set tmp = interface_ids.append(interface.id) %}
+            {% endif %}
+            {% set vlanid = ''%}
+            {% if tag != '0' %}
+                {% set vlanid = 'vlan-id ' + tag %}
+            {% endif %}
+set interfaces {{ name }} unit {{tag}} {{ vlanid }} family {{ family }} mtu {{ interface.mtu - 22 }} address {{ ip.address }}
+        {% endfor %}
+    {% endif %}
+{% endfor %}

@@ -1,0 +1,25 @@
+{% set ns = namespace() %}
+{% set interface_ids = [] %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.enabled == true and ('Loopback0' in interface.name) %}
+        {% for ip in interface.ip_addresses.all() %}
+                {% if not interface.id in interface_ids %}
+                    {% if interface.vrf.name is defined %}
+                        {% set vrfname = interface.vrf.name %}
+                    {% else %}
+                        {% set vrfname = "global" %}
+                    {% endif %}
+interface {{ interface.name }}
+   description "Loopback :: vrf:{{ vrfname }}"
+                    {% if vrfname == "global" %}
+   ip ospf area 0.0.0.0
+                    {% endif %}
+                    {% set _ = interface_ids.append(interface.id) %}
+                {% endif %}
+                {% if (ip.address is defined) %}
+   ip address {{ ip.address }}
+                {% endif %}
+!             
+        {% endfor %}
+    {% endif %}
+{% endfor %}

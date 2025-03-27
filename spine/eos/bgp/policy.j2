@@ -1,0 +1,49 @@
+
+{# find policies applicable to current device #}
+{% set pols = [] %}
+{% for peer in netbox_bgp.BGPSession.objects.filter(device=device) %}
+    {% if peer.import_policies.all()|length > 0 %}
+        {% set policies = peer.import_policies.all() %}
+    {% else %}
+        {% set policies = peer.peer_group.import_policies.all() %}
+    {% endif %}
+    {% for policy in policies %}
+        {% if policy not in pols %}
+            {% set tmp = pols.append(policy) %}
+        {% endif %}
+    {% endfor %}
+    {% if peer.export_policies.all()|length > 0 %}
+        {% set policies = peer.export_policies.all() %}
+    {% else %}
+        {% set policies = peer.peer_group.export_policies.all() %}
+    {% endif %}
+    {% for policy in policies %}
+        {% if policy not in pols %}
+            {% set tmp = pols.append(policy) %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{% set match = "" %}
+{% set action = {"permit": "accept", "deny": "reject"} %}
+{% for poli in pols %}
+    {% for policy in poli.rules.all() %}
+        {% if policy.match_custom is defined  and policy.match_custom is iterable %}
+            {% for pol in policy.match_custom %}
+                {% if pol["value"] is defined %}
+                    {% set match = pol["name"] + " " + pol["prefix"] + " " + pol["match-type"] + " " + pol["value"] %}
+                {% else %}
+                    {% set match = pol["name"] + " " + pol["prefix"] + " " + pol["match-type"] %}
+                {% endif %}
+                {% if match != "" %}
+set policy-options policy-statement {{ policy.routing_policy.name }} term {{policy.index }} from {{ match }}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {% if policy.set_actions is mapping %}
+set policy-options policy-statement {{ policy.routing_policy.name }} term {{policy.index }} then {{ policy.set_actions.name }} {{ policy.set_actions.action }}
+set policy-options policy-statement {{ policy.routing_policy.name }} term {{policy.index }} then {{ action[policy.action] }}
+        {% else %}
+set policy-options policy-statement {{ policy.routing_policy.name }} term {{policy.index }} then {{ action[policy.action] }}
+        {% endif %}
+    {% endfor %}
+{% endfor %}

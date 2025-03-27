@@ -1,4 +1,7 @@
 {% for interface in device.interfaces.all() %}
+{% if interface.enabled == false %}
+set interfaces {{ interface.name }} disable
+{% endif %}
 {% if interface.enabled == true and interface.type != "lag" and ('irb' not in interface.name) %}
 {% if ( (interface.mode is defined and interface.mode == "access") and
         (interface.untagged_vlan.id is defined) and

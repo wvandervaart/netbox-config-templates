@@ -1,0 +1,20 @@
+{% set loopback = "Loopback0"%}
+router ospf 1
+{% set ns = namespace() %}
+{% set interface_ids = [] %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.enabled == true and ('Loopback0' in interface.name) %}
+        {% for ip in interface.ip_addresses.all() %}
+                {% if not interface.id in interface_ids %}
+                    {% set _ = interface_ids.append(interface.id) %}
+                {% endif %}
+                {% if (ip.address is defined) %}
+   router-id {{ ip.address.ip }}
+                {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}
+   auto-cost reference-bandwidth 1000000
+   passive-interface {{loopback}}
+   max-lsa 12000
+!

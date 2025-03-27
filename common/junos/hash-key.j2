@@ -1,0 +1,8 @@
+{% if hash_key is defined %}
+delete forwarding-options hash-key
+    {% for family in hash_key.family %}
+        {% for hashs_key in hash_key.family[family]%}
+set forwarding-options hash-key family {{family}} {{ hashs_key }}
+        {% endfor %}
+    {% endfor %}
+{% endif %}

@@ -1,0 +1,18 @@
+
+delete chassis fpc 0 pic 0
+{# create a list called chassis_group_tag #}
+{% set chassis_group_tag = [] %}
+{% set mapping = ({"1000base-t":"1g","1000base-x-sfp":"1g","25gbase-x-sfp28":"25g"}) %}
+{% for interface in device.interfaces.all() %}
+{% if interface.cf.QFX_PORTGROUP is not none %}
+{# append the list (chassis_group_tag) with a dictionary of key/value items #}
+{% set tmp = chassis_group_tag.append({'interface': interface.name, 'enabled': interface.enabled, 'speed': interface.type, 'portgroup': interface.cf.QFX_PORTGROUP}) %}
+{% endif %}
+{% endfor %}
+{# loop over chassis_group_tag list, filter unique values of the portgroup key within dicts #}
+{% for cgt in chassis_group_tag | map(attribute='portgroup')|unique %}
+{% set line = chassis_group_tag | selectattr('portgroup', 'equalto', cgt) | selectattr('speed')|first %}
+{% if line["speed"] in mapping %}
+set chassis fpc 0 pic 0 port {{cgt}} speed {{ mapping[line["speed"]] }}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,35 @@
+
+{# loop through interfaces and configure OSPF on the correct ones #}
+{% set vrfs = [] %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.enabled == true and interface.cf.OSPF_AREA != None %}
+        {% if interface.cf.OSPF_VERSION == "2" or interface.cf.OSPF_VERSION == "23" or interface.cf.OSPF_VERSION == None %}
+                {% set _ = vrfs.append(interface.vrf.name )%}
+                {% if interface.cf.OSPF_PASSIVE == true %}
+set routing-instances {{ interface.vrf.name }} protocols ospf area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} passive
+                {% endif %}
+                {% if interface.cf.OSPF_BFD == true %}
+set routing-instances {{ interface.vrf.name }} protocols ospf area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} bfd-liveness-detection minimum-interval 300
+set routing-instances {{ interface.vrf.name }} protocols ospf area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} bfd-liveness-detection multiplier 3
+                {% endif %}
+                {% if interface.cf.OSPF_NETWORK_TYPE != None %}
+set routing-instances {{ interface.vrf.name }} protocols ospf area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} interface-type {{interface.cf.OSPF_NETWORK_TYPE}}
+                {% endif %}
+        {% endif %}
+        {% if interface.cf.OSPF_VERSION == "3" or interface.cf.OSPF_VERSION == "23"%}
+                {% if interface.cf.OSPF_PASSIVE == true %}
+set routing-instances {{ interface.vrf.name }} protocols ospf3 area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} passive
+                {% endif %}
+                {% if interface.cf.OSPF_BFD == true %}
+set routing-instances {{ interface.vrf.name }} protocols ospf3 area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} bfd-liveness-detection minimum-interval 300
+set routing-instances {{ interface.vrf.name }} protocols ospf3 area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} bfd-liveness-detection multiplier 3
+                {% endif %}
+                {% if interface.cf.OSPF_NETWORK_TYPE != None %}
+set routing-instances {{ interface.vrf.name }} protocols ospf3 area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} interface-type {{interface.cf.OSPF_NETWORK_TYPE}}
+                {% endif %}
+        {% endif %}    
+    {% endif %}
+{% endfor %}
+{% for vrf in vrfs|unique|list %}
+set routing-instances {{ vrf }} protocols ospf reference-bandwidth 1000g
+{% endfor %}

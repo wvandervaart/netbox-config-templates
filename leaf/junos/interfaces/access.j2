@@ -1,0 +1,35 @@
+{% for interface in device.interfaces.all() %}
+{% if interface.enabled == true and interface.type != "lag" and ('irb' not in interface.name) %}
+{% if "FEC_OFF" in interface.tags.names() %}
+set interfaces {{ interface.name }} gigether-options fec none
+{% endif %}
+{% if ( (interface.connected_endpoints is defined ) and (interface.connected_endpoints != [] ) and interface.connected_endpoints[0].device is defined ) %}
+    {% if interface.description != "" %}
+        {% set description = interface.description+" :: "+interface.connected_endpoints[0].device.name+"-"+interface.connected_endpoints[0].name %}
+    {% else %}
+        {% set description = interface.connected_endpoints[0].device.name+"-"+interface.connected_endpoints[0].name %}
+    {% endif %}
+{% elif ( (interface.connected_endpoints is defined ) and (interface.connected_endpoints != [] ) and interface.connected_endpoints[0].name is defined ) %}
+    {% if interface.description != "" %}
+        {% set description = interface.description+" :: "+interface.connected_endpoints[0].name %}
+    {% else %}
+        {% set description = interface.connected_endpoints[0].name %}
+    {% endif %}
+{% else %}
+    {% set description = interface.description %}
+{% endif %}
+{% if ( (interface.mode is defined and interface.mode == "access") and
+        (interface.untagged_vlan.id is defined) and
+        (interface.mtu is defined and interface.mtu|int > 0) ) %}
+set interfaces {{ interface.name }} description "{{ description }}" mtu {{ interface.mtu }} unit 0 family ethernet-switching interface-mode access vlan members {{ interface.untagged_vlan.name }}
+{% elif ( (interface.mode is defined and interface.mode == "tagged") and
+        (interface.tagged_vlans is defined) and
+        (interface.mtu is defined and interface.mtu|int > 0) ) %}
+{% set tagged_vlan = [] %}
+{% for tagged_vlans in interface.tagged_vlans.all() %}
+{% set tmp = tagged_vlan.append(tagged_vlans.name) %}
+{% endfor %}
+set interfaces {{ interface.name }} description "{{ description }}" mtu {{ interface.mtu }} unit 0 family ethernet-switching interface-mode trunk vlan members {{ tagged_vlan|replace(",", "")|replace("'", "") }}
+{% endif %}
+{% endif %}
+{% endfor %}

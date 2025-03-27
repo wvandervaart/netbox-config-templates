@@ -1,0 +1,37 @@
+{% set interface = device.interfaces.get(name="lo0.0")%}
+{% if "vtep" in interface.tags.names() %}
+    {% set ri = "routing-instances LAYER2 " %}
+{%  else %}
+    {% set ri = "" %}
+{% endif %}
+delete vlans
+{% set nb_id_vlan_list = [] %}
+{% set desc = "" %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.tagged_vlans is defined %}
+        {% for tagged_vlan in interface.tagged_vlans.all() %}
+            {% if tagged_vlan not in nb_id_vlan_list %}
+                {% set tmp = nb_id_vlan_list.append(tagged_vlan)%}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% if interface.untagged_vlan != None %}
+        {% if interface.untagged_vlan not in nb_id_vlan_list %}
+            {% set tmp = nb_id_vlan_list.append(interface.untagged_vlan) %}
+        {% endif %}
+    {% endif %}
+    {% if 'irb' in interface.name %}
+set {{ ri }}vlans {{ interface.untagged_vlan.name }} l3-interface {{ interface.name }}
+    {% endif %}
+{% endfor %}
+{% for vlan in nb_id_vlan_list %}
+    {% if vlan.description == "" %}
+        {% set desc = vlan.name %}
+    {% else %}
+        {% set desc = vlan.description %}
+    {% endif %}
+set {{ ri }}vlans {{ vlan.name }} description "{{ desc }}" vlan-id {{ vlan.vid }}
+    {% if vlan.l2vpn_termination != None %}
+set {{ ri }}vlans {{ vlan.name }} vxlan vni {{ vlan.l2vpn_termination.l2vpn.identifier }}
+    {% endif %}
+{% endfor %}

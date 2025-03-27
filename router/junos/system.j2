@@ -1,0 +1,128 @@
+{# set source-ip variable #}
+
+{% set ns = namespace() %}
+{% set ns.vrrp = False %}
+set system host-name {{ device.name }}
+{% for user in users.junos %}
+    {% if user.root_auth is defined %}
+set system root-authentication encrypted-password {{ user.root_auth }}
+    {% endif %}
+{% endfor %}
+{% for user in users.company %}
+    {% for system in user.systems %}
+        {% if system._name is defined and system._name == "junos" %}
+            {% if user.pubkey is defined %}
+set system login user {{ user._name }} class {{ system.class }} authentication {{ user.pubkeytype }} "{{ user.pubkey }}"
+            {% endif %}
+            {% if user.passwd is defined %}
+set system login user {{ user._name }} class {{ system.class }} authentication encrypted-password "{{ user.passwd }}"
+            {% endif %}
+            {% if user.uid is defined %}
+set system login user {{ user._name }} uid {{ user.uid }}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+set system services ssh protocol-version v2 client-alive-count-max 5 client-alive-interval 5
+set system services netconf ssh
+set system time-zone {{ utility.timezone }}
+set system use-imported-time-zones
+set system management-instance
+{% for ntp in utility.ntp %}
+    {% if device.primary_ip.assigned_object.vrf != None %}
+set system ntp server {{ ntp }} routing-instance {{ device.primary_ip.assigned_object.vrf }}
+    {% else %}
+set system ntp server {{ ntp }}
+    {% endif %}
+{% endfor %}
+set system ntp source-address {{ device.primary_ip.address.ip }}
+{% for ns in utility.dns %}
+    {% if device.primary_ip.assigned_object.vrf != None %}
+set system name-server {{ ns }} routing-instance {{ device.primary_ip.assigned_object.vrf }}
+    {% endif %}
+set system name-server {{ ns }} source-address {{ device.primary_ip.address.ip }}
+{% endfor %}
+set system syslog archive
+set system syslog user * any emergency
+{% for syslog in utility.syslog %}
+    {% if device.primary_ip.assigned_object.vrf != None %}
+set system syslog host {{ syslog._name }} routing-instance {{ device.primary_ip.assigned_object.vrf }}
+    {% endif %}
+set system syslog host {{ syslog._name }} structured-data
+set system syslog host {{ syslog._name }} port {{ syslog.port }} any info
+set system syslog host {{ syslog._name }} match "!((license)|(Minor class: 50 slot: 126)|(Failed to get ifl for ifl)|(devrt_rtsock))"
+set system syslog host {{ syslog._name }} exclude-hostname
+set system syslog host {{ syslog._name }} source-address {{ device.primary_ip.address.ip }}
+{% endfor %}
+set system syslog file interactive-commands interactive-commands any
+set system syslog file messages any notice
+set system syslog file messages authorization info
+set system syslog file messages match "!((license)|(Minor class: 50 slot: 126)|(Failed to get ifl for ifl)|(devrt_rtsock))"
+set system syslog time-format
+set protocols l2-learning global-mac-ip-table-aging-time 600
+set protocols l2-learning global-mac-table-aging-time 1200
+{# custom arp for IX interfaces #}
+set system arp aging-timer 10
+{% for interface in device.interfaces.all() %}
+    {% if "IXPORT" in interface.tags.names() %}
+set system arp interfaces {{ interface.name }} aging-timer 240
+    {% endif %}
+{% endfor %}
+{#
+{% for interface in device.interfaces.all() %}
+    {% for ip in interface.ip_addresses.all() %}
+        {% if ip.role is defined and ip.role == 'vrrp' %}
+            {% set ns.vrrp = True %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{% if ns.vrrp == True %}
+set system arp passive-learning
+{% endif %}
+#}
+set routing-options forwarding-table chained-composite-next-hop ingress evpn
+set routing-options forwarding-table ecmp-fast-reroute
+{# VSTP config #}
+set protocols vstp apply-groups APPLY-GROUP-VSTP
+{% if vstp is defined %}
+    {% for interface in vstp %}
+set protocols vstp interface {{ interface }} disable
+    {% endfor %}
+{% endif %}
+set routing-options autonomous-system {{ bgp.asn }}
+set groups MTU-1500 interfaces <*> unit <*> family inet mtu 1500
+set groups APPLY-GROUP-VSTP protocols vstp vlan <*> bridge-priority 0
+set groups APPLY-GROUP-VSTP protocols vstp vlan <*> system-identifier 00:00:00:00:00:01
+set class-of-service shared-buffer ingress percent 100
+set class-of-service shared-buffer ingress buffer-partition lossless percent 5
+set class-of-service shared-buffer ingress buffer-partition lossless-headroom percent 0
+set class-of-service shared-buffer ingress buffer-partition lossy percent 95
+set class-of-service shared-buffer egress percent 100
+set class-of-service shared-buffer egress buffer-partition lossless percent 5
+set class-of-service shared-buffer egress buffer-partition lossy percent 75
+set class-of-service shared-buffer egress buffer-partition multicast percent 20
+set system login class READ_ONLY permissions access
+set system login class READ_ONLY permissions admin
+set system login class READ_ONLY permissions firewall
+set system login class READ_ONLY permissions flow-tap
+set system login class READ_ONLY permissions interface
+set system login class READ_ONLY permissions network
+set system login class READ_ONLY permissions routing
+set system login class READ_ONLY permissions secret
+set system login class READ_ONLY permissions security
+set system login class READ_ONLY permissions snmp
+set system login class READ_ONLY permissions storage
+set system login class READ_ONLY permissions system
+set system login class READ_ONLY permissions trace
+set system login class READ_ONLY permissions view
+set system login class READ_ONLY permissions view-configuration
+{% if ddos_protection is defined %}
+    {% for protocol in ddos_protection.protocols %}
+        {% if protocol.aggregate.bandwidth is defined %}
+set system ddos-protection protocols {{ protocol.name }} aggregate bandwidth {{ protocol.aggregate.bandwidth }}
+        {% endif %}
+        {% if protocol.aggregate.burst is defined %}
+set system ddos-protection protocols {{ protocol.name }} aggregate burst {{ protocol.aggregate.burst }}
+        {% endif %}
+    {% endfor %}
+{% endif %}

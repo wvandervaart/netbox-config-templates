@@ -1,0 +1,8 @@
+{% if as_path_groups is defined %}
+    {%  for group in as_path_groups %}
+        {# set policy-options as-path-group CDN77 as-path ASN8412 8412 #}
+        {%  for asn in group['asns'] %}
+set policy-options as-path-group {{ group['name'] }} as-path ASN{{ asn | replace('.*', '') }} {{ asn }}
+        {%  endfor %}
+    {%  endfor %}
+{% endif %}

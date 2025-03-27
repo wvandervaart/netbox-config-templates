@@ -1,0 +1,50 @@
+{% set ns = namespace() %}
+{% set interface_ids = [] %}
+{% set ns.virt_gw = "" %}
+{% for interface in device.interfaces.all() %}
+    {% if ('irb' in interface.name) %}
+        {% if interface.enabled != true  %}
+set interfaces {{ interface.name|replace(".", " unit ") }} disable
+        {%  endif  %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% if ip.role is defined and ip.role == 'vrrp' %}
+                {% set prio = "200" %}
+                {% if "PRIMARY" in ip.tags.names()%}
+                    {% set prio = "250" %}
+                {% endif %}
+                {% if ip.cf.VRRP_GROUP is defined and ip.cf.VRRP_GROUP != None %}
+                    {% set vrrpgroup = ip.cf.VRRP_GROUP %}
+                {% else %}
+                    {% set vrrpgroup = 1 %}
+                {% endif %}
+                {% set ns.virt_gw = "vrrp-group " + vrrpgroup|string + " virtual-address " + ip.address.ip|string + " priority " + prio + " accept-data " %}
+            {% endif %}
+            {% if ip.role is defined and ip.role == 'anycast' %}
+                {% set ns.virt_gw = "virtual-gateway-address " + ip.address.ip|string %}
+            {% endif %}
+        {% endfor %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% if 'irb' in interface.name %}
+                {% if ip.family == 4 %}
+                    {% set family = 'inet' %}
+                {% else %}
+                    {% set family = 'inet6' %}
+                {% endif %}
+                {% if not interface.id in interface_ids %}
+                    {% if interface.vrf.name is defined %}
+                        {% set vrfname = interface.vrf.name %}
+                    {% else %}
+                        {% set vrfname = "global" %}
+                    {% endif %}
+set interfaces {{ interface.name|replace(".", " unit ") }} description "L3:{{ interface.untagged_vlan.name }} :: vrf:{{ vrfname }}"
+                    {% set tmp =  interface_ids.append(interface.id) %}
+                {% endif %}
+                {% if not (ip.role is defined and ip.role == 'vrrp') and not (ip.role == 'anycast') %}
+set interfaces {{ interface.name|replace(".", " unit ") }} virtual-gateway-accept-data
+set interfaces {{ interface.name|replace(".", " unit ") }} family {{ family }} address {{ ip.address }} {{ ns.virt_gw }}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% set ns.virt_gw = "" %}
+{% endfor %}

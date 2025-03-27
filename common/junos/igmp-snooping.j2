@@ -1,0 +1,28 @@
+{% set nb_id_vlan_list = [] %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.tagged_vlans is defined %}
+        {% for tagged_vlan in interface.tagged_vlans.all() %}
+            {% if tagged_vlan not in nb_id_vlan_list %}
+                {% set tmp = nb_id_vlan_list.append(tagged_vlan)%}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% if interface.untagged_vlan != None %}
+        {% if interface.untagged_vlan not in nb_id_vlan_list %}
+            {% set tmp = nb_id_vlan_list.append(interface.untagged_vlan) %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+{% for vlan in nb_id_vlan_list %}
+    {% if vlan.description == "" %}
+        {% set desc = vlan.name %}
+    {% else %}
+        {% set desc = vlan.description %}
+    {% endif %}
+    {% if "IGMP-SNOOPING-PROXY" in vlan.tags.names() %}
+set protocols igmp-snooping vlan {{ vlan.name }} proxy
+    {% endif %}
+    {% if "IGMP-SNOOPING" in vlan.tags.names() %}
+set protocols igmp-snooping vlan {{ vlan.name }}
+    {% endif %}
+{% endfor %}

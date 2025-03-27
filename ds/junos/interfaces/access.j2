@@ -1,0 +1,50 @@
+{% for interface in device.interfaces.all() %}
+        {% if interface.enabled == true and ('irb' not in interface.name) and ('ae' not in interface.name) %}
+                {% if ( (interface.connected_endpoints is defined ) and (interface.connected_endpoints != [] ) and interface.connected_endpoints[0].device is defined ) %}
+                        {% if interface.description != "" %}
+                                {% set description = interface.description+" :: "+interface.connected_endpoints[0].device.name+"-"+interface.connected_endpoints[0].name %}
+                        {% else %}
+                                {% set description = interface.connected_endpoints[0].device.name+"-"+interface.connected_endpoints[0].name %}
+                        {% endif %}
+                {% else %}
+                        {% set description = interface.description%}
+                {% endif %}
+                {% if ( (interface.mode is defined and interface.mode == "access") and
+                        (interface.untagged_vlan.id is defined) and
+                        (interface.mtu is defined and interface.mtu|int > 0) ) %}
+set interfaces {{ interface.name }} description "{{ description }}" 
+set interfaces {{ interface.name }} mtu {{ interface.mtu }} 
+set interfaces {{ interface.name }} unit 0 family ethernet-switching interface-mode access vlan members {{ interface.untagged_vlan.name }}
+                {% elif ( (interface.mode is defined and interface.mode == "tagged") and
+                        (interface.tagged_vlans is defined) and
+                        (interface.mtu is defined and interface.mtu|int > 0) ) %}
+                        {% set tagged_vlan = [] %}
+                        {% for tagged_vlans in interface.tagged_vlans.all() %}
+                                {% set tmp = tagged_vlan.append(tagged_vlans.name) %}
+                        {% endfor %}
+set interfaces {{ interface.name }} description "{{ description }}" 
+set interfaces {{ interface.name }} mtu {{ interface.mtu }} 
+set interfaces {{ interface.name }} unit 0 family ethernet-switching interface-mode trunk vlan members {{ tagged_vlan|replace(",", "")|replace("'", "") }}
+                {% elif device.interfaces.filter(parent=interface) and
+                (interface.mtu is defined and interface.mtu|int > 0) %}
+set interfaces {{ interface.name }} description "{{ description }}"
+set interfaces {{ interface.name }} flexible-vlan-tagging
+set interfaces {{ interface.name }} native-vlan-id 1
+                        {% if interface.mac_address is defined and interface.mac_address != None%}
+set interfaces {{ interface.name }} mac {{ interface.mac_address }}
+                        {% endif %}
+                {% endif %}
+        {% elif interface.enabled == false and ('irb' not in interface.name) and ('ae' not in interface.name)%}
+                {% if ( (interface.connected_endpoints is defined ) and (interface.connected_endpoints != [] ) and interface.connected_endpoints[0].device is defined ) %}
+                        {% if interface.description != "" %}
+                                {% set description = interface.description+" :: "+interface.connected_endpoints[0].device.name+"-"+interface.connected_endpoints[0].name %}
+                        {% else %}
+                                {% set description = interface.connected_endpoints[0].device.name+"-"+interface.connected_endpoints[0].name %}
+                        {% endif %}
+                {% else %}
+                        {% set description = interface.description%}
+                {% endif %}
+set interfaces {{ interface.name }} description "{{ description }}" 
+set interfaces {{ interface.name }} disable
+        {% endif %}
+{% endfor %}

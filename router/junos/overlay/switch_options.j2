@@ -1,0 +1,12 @@
+
+set switch-options vrf-target {{ switch_options.target }}
+{% set interface = device.interfaces.get(name="lo0.0")%}
+{% if "vtep" in interface.tags.names() %}
+    {% set id = interface.ip_addresses.all()[0].address.ip %}
+{% else %}
+    {% set id = device.primary_ip.address.ip %}
+{% endif %}
+set switch-options route-distinguisher {{ id }}:1
+set routing-options router-id {{ id }}
+set forwarding-options storm-control-profiles default all
+set forwarding-options multicast-replication evpn irb oism

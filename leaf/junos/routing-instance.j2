@@ -1,0 +1,46 @@
+
+delete routing-instances
+{% set ns = namespace(enabled_vrfs=[]) %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.vrf.id is defined %}
+        {% if interface.enabled == true %}
+            {% if interface.vrf not in ns.enabled_vrfs %}
+                {% set tmp = ns.enabled_vrfs.append(interface.vrf) %}
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+{% for vrf in ns.enabled_vrfs %}
+    {% if vrf.name != "mgmt_junos" and 'VNI' in vrf.cf and vrf.cf.VNI != None %}
+set routing-instances {{ vrf.name }} instance-type vrf
+set routing-instances {{ vrf.name }} routing-options router-id {{ device.primary_ip.address.ip }}
+set routing-instances {{ vrf.name }} route-distinguisher {{ device.primary_ip.address.ip }}:{{ vrf.rd }}
+            {% if vrf.import_targets is defined %}
+                {% for target in vrf.import_targets.all() %}
+set routing-instances {{ vrf.name }} vrf-target import target:{{ target.name }}
+                {% endfor %}
+            {% endif %}
+            {% if vrf.export_targets is defined %}
+                {% for target in vrf.export_targets.all() %}
+set routing-instances {{ vrf.name }} vrf-target export target:{{ target.name }}
+                {% endfor %}
+            {% endif %}
+set routing-instances {{ vrf.name }} vrf-table-label
+            {% if 'VNI' in vrf.cf and vrf.cf.VNI != None %}
+set routing-instances {{ vrf.name }} protocols evpn ip-prefix-routes advertise direct-nexthop
+set routing-instances {{ vrf.name }} protocols evpn ip-prefix-routes vni {{ vrf.cf.VNI.identifier }}
+set routing-instances {{ vrf.name }} protocols evpn ip-prefix-routes encapsulation vxlan
+set routing-instances {{ vrf.name }} protocols evpn ip-prefix-routes export POL_VRF-REDIST
+            {% endif %}
+            {% for interface in device.interfaces.all() %}
+                {% if interface.vrf.id is defined %}
+                    {% if interface.enabled == true and interface.vrf.id == vrf.id %}
+set routing-instances {{ vrf.name }} interface {{ interface.name }}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+set routing-instances {{ vrf.name }} routing-options multipath
+    {% elif vrf.name == "mgmt_junos"%}
+set routing-instances mgmt_junos routing-options static route 0.0.0.0/0 next-hop {{MGMT_GW['address'].split('/')[0]}}
+    {% endif %}
+{% endfor %}

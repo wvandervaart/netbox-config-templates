@@ -1,0 +1,38 @@
+{% set ns = namespace(dev_count=0) %}
+{% set mapping = ({"1000base-t":"1g","25gbase-x-sfp28":"25g","10gbase-x-sfpp":"10g","100gbase-x-qsfp28":"100g"}) %}
+{% set lagspeed = {} %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.enabled == true %}
+        {% if  (interface.lag is defined and interface.lag != None )  %}
+        {% if interface.type is defined %}
+        {# ugly truncate, need to fix for different portspeeds (1g/100g) #}
+        {% set speed = mapping[interface.type] %}
+        {% set _ = lagspeed.update({interface.lag.name: speed|lower})%}
+        {% endif %}
+interface {{ interface.name }}
+   description {{ interface.lag.description }}
+   no switchport
+   channel-group {{ interface.lag.name | replace("Port-Channel", "") }} mode active
+   {% if lagspeed[interface.lag.name] == "25g" %}
+   speed forced 25gfull
+   {% endif %}
+!
+        {% endif %}
+        {% if interface.type == "lag" %}
+            {% for ip in interface.ip_addresses.all() %}
+            {# leafs - cofigure p2p links to spine #}
+                    {% if (interface.mtu is defined and interface.mtu|int > 0 ) %}
+interfaces {{ interface.name }}
+   description {{ interface.description }}
+   mtu {{ interface.mtu }}
+   no switchport
+   ip address {{ ip.address }}
+   ip ospf neighbor bfd
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+                    {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endif %}
+{% endfor %}

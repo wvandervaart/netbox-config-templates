@@ -1,0 +1,5 @@
+{% set interface = device.interfaces.get(name="lo0.0")%}
+{% if "vtep" in interface.tags.names() %}
+
+set routing-instances LAYER2 protocols evpn default-gateway no-gateway-community
+{% endif %}

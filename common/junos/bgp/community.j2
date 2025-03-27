@@ -1,0 +1,6 @@
+{% if communities is defined %}
+    {%  for group in communities %}
+        {# set policy-options as-path-group CDN77 as-path ASN8412 8412 #}
+set policy-options community {{ group['name'] }} members {{ group['community'] }}
+    {%  endfor %}
+{% endif %}

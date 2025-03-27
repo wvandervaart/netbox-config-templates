@@ -2,14 +2,15 @@
 {% set loopback = "Loopback0"%}
 transceiver qsfp default-mode 4x10G
 service routing protocols model multi-agent
-hostname {{ inventory_hostname }}
+service unsupported-transceiver 20181031_NEP_NL af56431c
+hostname {{ device.name }}
 !
 no aaa root
 !
 aaa authorization exec default local
 aaa authorization commands all default local
 !
-{% for user in users.copmany %}
+{% for user in users.company %}
     {% for system in user.systems %}
         {% if system._name is defined and system._name == 'arista' %}
             {% if user.arista_pw is defined %}

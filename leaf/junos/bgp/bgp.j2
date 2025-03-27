@@ -1,0 +1,96 @@
+
+delete protocols bgp
+{% set ri = "" %}
+{% set int_pgids = [] %}
+{% set ext_pgids = [] %}
+{% set pg_as = {} %}
+{% set pg_vrf = {} %}
+{% for peer in netbox_bgp.BGPSession.objects.filter(device=device) %}
+    {% set ri = "" %}
+    {% set vrf = peer.local_address.vrf %}
+    {% if vrf.name is defined %}
+        {% set test = pg_vrf.update({peer.peer_group.id: vrf.name}) %}
+        {% set ri = "routing-instances " + vrf.name + " "%}
+    {% endif %}
+    {% if peer.peer_group.id not in int_pgids and peer.peer_group.id not in ext_pgids %}
+set {{ri}}protocols bgp group {{ peer.peer_group.name }} local-address {{ peer.local_address.address.ip }}
+    {% endif %}
+    {% if peer.remote_as.asn == peer.local_as.asn %}
+        {% set tmp = int_pgids.append(peer.peer_group.id) %}
+set {{ri}}protocols bgp group {{ peer.peer_group.name }} neighbor {{ peer.remote_address.address.ip }}
+    {% else %}
+        {% set tmp = ext_pgids.append(peer.peer_group.id) %}
+set {{ri}}protocols bgp group {{ peer.peer_group.name }} neighbor {{ peer.remote_address.address.ip }} peer-as {{ peer.remote_as.asn }}
+        {% set tmp = pg_as.update({peer.peer_group.id: peer.remote_as.asn})%}
+    {% endif %}
+    {% if peer.description is defined and peer.description != "" %}
+set {{ri}}protocols bgp group {{ peer.peer_group.name }} neighbor {{ peer.remote_address.address.ip }} description "{{peer.description}}"
+    {% endif %}
+{% endfor %}
+{% for pg in netbox_bgp.BGPPeerGroup.objects.all() %}
+{% if pg_vrf[pg.id] is defined %}
+    {% set ri = "routing-instances " + pg_vrf[pg.id] + " " %}
+{% endif %}
+{% if pg.id in int_pgids or pg.id in ext_pgids %}
+    {% if pg.id in int_pgids %}
+        {% set type = 'internal' %}
+    {% else %}
+        {% set type = 'external' %}
+set {{ri}}protocols bgp group {{ pg.name }} peer-as {{ pg_as[pg.id] }}
+    {% endif %}
+    {# Match for _V6 in the name to set family #}
+    {% if "_V6" in pg.name %}
+        {% set family = "inet6 unicast "%}
+    {% elif "SPINE" in pg.name or "LEAF" in pg.name %}
+        {% set family = "evpn signaling" %}
+    {% else %}
+        {% set family = "inet unicast"%}
+    {% endif %}
+set {{ri}}protocols bgp group {{ pg.name }} type {{ type }}
+    {% if pg.cf.AUTH_KEY is defined and pg.cf.AUTH_KEY is string  %}
+set {{ri}}protocols bgp group {{ pg.name }} authentication-key "{{ pg.cf.AUTH_KEY }}"
+    {% endif %}
+    {% if pg.cf['BFD'] == True %}
+set {{ri}}protocols bgp group {{ pg.name }} bfd-liveness-detection minimum-interval 300
+set {{ri}}protocols bgp group {{ pg.name }} bfd-liveness-detection multiplier 3
+    {% endif %}
+    {% if pg.cf.PREFIX_LIMIT is defined and pg.cf.PREFIX_LIMIT is integer  %}
+set {{ri}}protocols bgp group {{ pg.name }} family {{ family }} prefix-limit maximum {{ pg.cf.PREFIX_LIMIT }}
+set {{ri}}protocols bgp group {{ pg.name }} family {{ family }} prefix-limit teardown
+    {% endif %}
+    {% for export_policies in pg.export_policies.all() %}
+set {{ri}}protocols bgp group {{ pg.name }} export {{export_policies.name }}
+    {% endfor %}
+    {% for import_policies in pg.import_policies.all() %}
+set {{ri}}protocols bgp group {{ pg.name }} import {{import_policies.name }}
+    {% endfor %}
+set {{ri}}protocols bgp group {{ pg.name }} multipath
+set {{ri}}protocols bgp group {{ pg.name }} family {{ family }}
+{% endif %}
+    {% for peer in netbox_bgp.BGPSession.objects.filter(device=device) %}
+        {% if peer.peer_group.id == pg.id %}
+            {% set ri = "" %}
+            {% set vrf = peer.local_address.vrf %}
+            {% if vrf.name is defined %}
+                {% set test = pg_vrf.update({peer.peer_group.id: vrf.name}) %}
+                {% set ri = "routing-instances " + vrf.name + " "%}
+            {% endif %}
+            {% for export_policies in peer.export_policies.all() %}
+                {% if export_policies not in pg.export_policies.all() %}
+set {{ri}}protocols bgp group {{ peer.peer_group.name }} neighbor {{ peer.remote_address.address.ip }} export {{export_policies.name }}
+                {% endif %}
+            {% endfor %}
+            {% for import_policies in peer.import_policies.all() %}
+                {% if import_policies not in pg.import_policies.all() %}
+set {{ri}}protocols bgp group {{ peer.peer_group.name }} neighbor {{ peer.remote_address.address.ip }} import {{import_policies.name }}
+                {% endif %}
+            {% endfor %}
+            {% if peer.status != "active"%}
+set {{ri}}protocols bgp group {{ peer.peer_group.name }} neighbor {{ peer.remote_address.address.ip }} shutdown
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+set {{ri}}protocols bgp precision-timers
+set {{ri}}protocols bgp log-updown
+set {{ri}}protocols bgp graceful-restart

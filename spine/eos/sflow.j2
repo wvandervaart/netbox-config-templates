@@ -1,0 +1,9 @@
+{% if 'interfaces' in sflow %}
+set protocols sflow agent-id {{ device.primary_ip.address.ip }}
+set protocols sflow source-ip {{ device.primary_ip.address.ip }}
+set protocols sflow sample-rate egress 32768
+set protocols sflow collector {{ sflow.collector }} udp-port {{ sflow.port }}
+{% for interface in sflow.interfaces %}
+set protocols sflow interfaces {{ interface }}
+{% endfor %}
+{% endif %}

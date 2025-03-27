@@ -1,0 +1,34 @@
+
+{% if sflow is defined %}
+delete protocols sflow
+set protocols sflow agent-id {{ device.primary_ip.address.ip }}
+set protocols sflow source-ip {{ device.primary_ip.address.ip }}
+set protocols sflow sample-rate egress 32768
+set protocols sflow collector {{ sflow.collector }} udp-port {{ sflow.port }}
+    {% for interface in sflow.interfaces %}
+set protocols sflow interfaces {{ interface }}
+    {% endfor %}
+{% endif %}
+{% for interface in device.interfaces.all() %}
+    {% if interface.cf.SFLOW == true %}
+        {% if "ae" in interface.name %}
+            {% if "." in interface.name %}
+                {% set tempname = interface.name.split('.') %}
+                {% set aeint = device.interfaces.get(name=tempname[0]) %}
+                {% set append = tempname[1] %}
+            {% else %}
+                {% set aeint = interface %}
+                {% set append = "32767" %}
+            {% endif %}
+            {% for int in device.interfaces.filter(lag=aeint.id) %}
+set protocols sflow interfaces {{int.name + "." + append}}
+            {% endfor %}
+        {% else %}
+            {% if "." in interface.name %}
+set protocols sflow interfaces {{ interface }}
+            {% else %}
+set protocols sflow interfaces {{ interface }}.0
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endfor %}

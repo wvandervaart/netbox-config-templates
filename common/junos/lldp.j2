@@ -1,0 +1,8 @@
+delete protocols lldp
+set protocols lldp port-id-subtype interface-name
+set protocols lldp interface all
+{% for interface in device.interfaces.all() %}
+    {% if interface.enabled == true and "LLDP_OFF" in interface.tags.names() %}
+set protocols lldp interface {{ interface.name }} disable
+    {% endif %}
+{% endfor %}

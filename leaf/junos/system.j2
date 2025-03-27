@@ -27,11 +27,7 @@ set system time-zone {{ utility.timezone }}
 set system use-imported-time-zones
 set system management-instance
 {% for ntp in utility.ntp %}
-{% if device.primary_ip.assigned_object.vrf != None %}
-set system syslog host {{ ntp }} routing-instance {{ device.primary_ip.assigned_object.vrf }}
-{% else %}
 set system ntp server {{ ntp }}
-{% endif %}
 {% endfor %}
 set system ntp source-address {{ device.primary_ip.address.ip }}
 {% for ns in utility.dns %}
@@ -40,9 +36,6 @@ set system name-server {{ ns }} source-address {{ device.primary_ip.address.ip }
 set system syslog archive
 set system syslog user * any emergency
 {% for syslog in utility.syslog %}
-{% if device.primary_ip.assigned_object.vrf != None %}
-set system syslog host {{ syslog._name }} routing-instance {{ device.primary_ip.assigned_object.vrf }}
-{% endif %}
 set system syslog host {{ syslog._name }} structured-data
 set system syslog host {{ syslog._name }} port {{ syslog.port }} any info
 set system syslog host {{ syslog._name }} match "!((license)|(Minor class: 50 slot: 126)|(Failed to get ifl for ifl)|(devrt_rtsock))"
@@ -60,6 +53,27 @@ set system arp aging-timer 10
 delete protocols lldp
 set protocols lldp port-id-subtype interface-name
 set protocols lldp interface all
+set routing-options forwarding-table chained-composite-next-hop ingress evpn
+set routing-options forwarding-table ecmp-fast-reroute
+{# VSTP config #}
+set protocols vstp apply-groups APPLY-GROUP-VSTP
+{% if vstp is defined %}
+{% for interface in vstp %}
+set protocols vstp interface {{ interface }} disable
+{% endfor %}
+{% endif %}
+set routing-options autonomous-system {{ bgp.asn }}
+set groups MTU-1500 interfaces <*> unit <*> family inet mtu 1500
+set groups APPLY-GROUP-VSTP protocols vstp vlan <*> bridge-priority 0
+set groups APPLY-GROUP-VSTP protocols vstp vlan <*> system-identifier 00:00:00:00:00:01
+set class-of-service shared-buffer ingress percent 100
+set class-of-service shared-buffer ingress buffer-partition lossless percent 5
+set class-of-service shared-buffer ingress buffer-partition lossless-headroom percent 0
+set class-of-service shared-buffer ingress buffer-partition lossy percent 95
+set class-of-service shared-buffer egress percent 100
+set class-of-service shared-buffer egress buffer-partition lossless percent 5
+set class-of-service shared-buffer egress buffer-partition lossy percent 75
+set class-of-service shared-buffer egress buffer-partition multicast percent 20
 {% if 'interfaces' in sflow %}
 set protocols sflow agent-id {{ device.primary_ip.address.ip }}
 set protocols sflow source-ip {{ device.primary_ip.address.ip }}
@@ -84,6 +98,13 @@ set system login class READ_ONLY permissions system
 set system login class READ_ONLY permissions trace
 set system login class READ_ONLY permissions view
 set system login class READ_ONLY permissions view-configuration
-{# RSTP config#}
-delete protocols rstp
-set protocols rstp interface all
+{% if ddos_protection is defined %}
+    {% for protocol in ddos_protection.protocols %}
+        {% if protocol.aggregate.bandwidth is defined %}
+set system ddos-protection protocols {{ protocol.name }} aggregate bandwidth {{ protocol.aggregate.bandwidth }}
+        {% endif %}
+        {% if protocol.aggregate.burst is defined %}
+set system ddos-protection protocols {{ protocol.name }} aggregate burst {{ protocol.aggregate.burst }}
+        {% endif %}
+    {% endfor %}
+{% endif %}
