@@ -1,0 +1,87 @@
+{
+  "bgp": {
+    "asn": 65000,
+    "clusterid": "192.0.2.1",
+    "key": "EXAMPLE-REPLACE-ME"
+  },
+  "ospf": {
+    "area": "0.0.0.0",
+    "key": "EXAMPLE-REPLACE-ME"
+  },
+  "communities": [
+    { "name": "NO_EXPORT", "community": "no-export" },
+    { "name": "CUSTOMER_ROUTES", "community": "65000:100" }
+  ],
+  "ddos_protection": {
+    "protocols": [
+      { "name": "arp", "aggregate": { "bandwidth": 2000, "burst": 1000 } },
+      { "name": "ndpv6", "aggregate": { "bandwidth": 2000, "burst": 1000 } }
+    ]
+  },
+  "hash_key": {
+    "family": {
+      "inet": ["layer-3"],
+      "inet6": ["layer-3", "layer-4"]
+    }
+  },
+  "enhanced_hash_key": {
+    "family": {
+      "inet": ["no-incoming-port", "no-incoming-device", "no-l4-source-port", "no-l4-destination-port", "no-protocol"],
+      "inet6": ["no-incoming-port", "no-incoming-device", "no-l4-source-port", "no-l4-destination-port"]
+    }
+  },
+  "group_config": [
+    "set firewall family inet filter example-filter term allow-icmp from protocol icmp",
+    "set firewall family inet filter example-filter term allow-icmp then accept"
+  ],
+  "manual_config": [
+    "delete protocols vstp interface all"
+  ],
+  "sflow": {
+    "collector": "192.0.2.14",
+    "port": "6343"
+  },
+  "snmp": {
+    "contact": "noc@example.com",
+    "community": [
+      {
+        "name": "example-ro",
+        "clients": [
+          { "address": "192.0.2.10/32" },
+          { "address": "198.51.100.0/31", "vrf": "MGMT" }
+        ]
+      }
+    ]
+  },
+  "switch_options": {
+    "target": "target:65000:1",
+    "t5": "target:65000:123"
+  },
+  "users": {
+    "junos": [
+      { "root_auth": "EXAMPLE-REPLACE-ME-$9$encrypted" }
+    ],
+    "peakfactory": [
+      {
+        "_name": "jdoe",
+        "uid": 5010,
+        "pubkey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXAMPLEKEYDONOTUSE00000000000",
+        "pubkeytype": "ssh-ed25519",
+        "passwd": "EXAMPLE-REPLACE-ME-$6$encrypted",
+        "arista_pw": "EXAMPLE-REPLACE-ME",
+        "systems": [
+          { "_name": "junos", "class": "super-user" },
+          { "_name": "arista", "class": "network-admin" }
+        ]
+      }
+    ]
+  },
+  "utility": {
+    "timezone": "Europe/Amsterdam",
+    "ntp": ["192.0.2.10"],
+    "dns": ["198.51.100.1", "198.51.100.2"],
+    "syslog": [
+      { "_name": "192.0.2.80", "port": "1514" }
+    ]
+  }
+}

@@ -2,7 +2,7 @@
 
 These templates are registered in NetBox as Config Templates and rendered via `render_config()`. The context NetBox hands to Jinja2 is `{"device": device, **device.get_config_context()}`, plus each role's `main.j2` prefetching `netbox_bgp` querysets (`bgp_sessions`, `bgp_peer_groups`) and `device.interfaces.all()` as `device_interfaces` (see `CLAUDE.md` for the prefetch pattern and repo/template structure).
 
-Templates pull from three NetBox data channels: **custom fields**, **tags**, and **config context**. This doc catalogs what's actually read today.
+Templates pull from three NetBox data channels: **custom fields**, **tags**, and **config context**. This doc catalogs what's actually read today. `scaffold/provision_netbox_schema.py` provisions the custom fields and tags below on a NetBox instance (idempotent, safe to rerun) — see that file's docstring for usage.
 
 ## Custom fields
 
@@ -109,7 +109,7 @@ No `.cf` access exists directly under `leaf/`, `ds/`, or `mgmt/` — those roles
 
 ## Config context
 
-NetBox spreads `device.get_config_context()` keys directly into the top-level template namespace — so these are plain variables, not nested under a `config_context` key.
+NetBox spreads `device.get_config_context()` keys directly into the top-level template namespace — so these are plain variables, not nested under a `config_context` key. See `scaffold/example_config_context.json` for a worked example covering every key below with placeholder values — paste its contents into a NetBox Config Context's "Data" field as a starting point, then replace the placeholders (ASN, IPs, users, keys) with real values.
 
 | Key | Shape | Purpose |
 |---|---|---|
