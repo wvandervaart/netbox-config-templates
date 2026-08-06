@@ -1,0 +1,85 @@
+{% set ns = namespace(dev_count=0) %}
+{% set lagspeed = {} %}
+{% set mapping = {
+    "1000base-t":        "1g",
+    "25gbase-x-sfp28":   "25g",
+    "10gbase-x-sfpp":    "10g",
+    "100gbase-x-qsfp28": "100g",
+    "400gbase-x-qsfpdd": "400g"
+} %}
+{#  #}
+{% set children_by_parent = {} %}
+{% for iface in device_interfaces %}
+    {% if iface.parent %}
+        {% set _ = children_by_parent.setdefault(iface.parent.id, []).append(iface) %}
+    {% endif %}
+{% endfor %}
+{% for interface in device_interfaces %}
+    {% if interface.enabled %}
+    {# -- Build description -------------------------------------------------- #}
+        {% set ep = interface.connected_endpoints[0] if interface.connected_endpoints else None %}
+        {% if ep %}
+            {% set ep_label = (ep.device.name ~ "-" ~ ep.name) if ep.device is defined else ep.name %}
+            {% set description = (interface.description ~ " :: " ~ ep_label) if interface.description else ep_label %}
+        {% else %}
+            {% set description = interface.description %}
+        {% endif %}
+        {% if interface.link_peers and interface.link_peers[0].cable is defined
+          and interface.link_peers[0].cable.label %}
+            {% set description = description ~ " :: " ~ interface.link_peers[0].cable.label %}
+        {% endif %}
+    {# -- LAG member --------------------------------------------------------- #}
+        {% if interface.lag %}
+            {% if interface.type is defined %}
+                {% set _ = lagspeed.update({interface.lag.name: mapping[interface.type] | lower}) %}
+            {% endif %}
+set interfaces {{ interface.name }} ether-options 802.3ad {{ interface.lag.name }}
+set interfaces {{ interface.name }} description "{{ interface.lag.name }} :: {{ description }}"
+        {% endif %}
+    {# -- LAG (ae) interface ------------------------------------------------- #}
+        {% if interface.type == "lag" %}
+            {% set ns.dev_count = ns.dev_count + 1 %}
+            {% set has_children = children_by_parent.get(interface.id, []) %}
+            {% set has_mtu      = interface.mtu | int > 0 %}
+            {% set is_maintenance = "maintenance" in interface.tags.names() %}
+            {% set description = ((description ~ " :: MAINT") if description else "MAINT") if is_maintenance else description %}
+{#  #}
+            {% if has_children and has_mtu %}
+set interfaces {{ interface.name }} flexible-vlan-tagging
+set interfaces {{ interface.name }} native-vlan-id 1
+set interfaces {{ interface.name }} mtu {{ interface.mtu }}
+            {% endif %}
+{#  #}
+set interfaces {{ interface.name }} description "{{ description }}"
+set interfaces {{ interface.name }} aggregated-ether-options lacp active
+set interfaces {{ interface.name }} aggregated-ether-options lacp periodic fast
+            {% if lagspeed[interface.name] is defined %}
+set interfaces {{ interface.name }} aggregated-ether-options link-speed {{ lagspeed[interface.name] }}
+            {% endif %}
+        {# Access mode #}
+            {% if interface.mode == "access" and interface.untagged_vlan.id is defined and has_mtu %}
+set interfaces {{ interface.name }} mtu {{ interface.mtu }}
+set interfaces {{ interface.name }} unit 0 family ethernet-switching interface-mode access
+set interfaces {{ interface.name }} unit 0 family ethernet-switching vlan members {{ (maintenance_vlan.name if maintenance_vlan else "VLAN900") if is_maintenance else interface.untagged_vlan.name }}
+        {# Trunk mode #}
+            {% elif interface.mode == "tagged" and interface.tagged_vlans is defined and has_mtu %}
+                {% set tagged_vlan = [maintenance_vlan.name if maintenance_vlan else "VLAN900"] if is_maintenance else interface.tagged_vlans.all() | map(attribute='name') | list %}
+set interfaces {{ interface.name }} mtu {{ interface.mtu }}
+set interfaces {{ interface.name }} unit 0 family ethernet-switching interface-mode trunk
+set interfaces {{ interface.name }} unit 0 family ethernet-switching vlan members [{{ tagged_vlan | join(" ") }}]
+            {% endif %}
+        {# Filters #}
+            {% set input_filter  = interface.cf.get('INPUT_FILTER') %}
+            {% set output_filter = interface.cf.get('OUTPUT_FILTER') %}
+            {% if input_filter %}
+set interfaces {{ interface.name }} unit 0 family ethernet-switching filter input {{ input_filter }}
+            {% endif %}
+            {% if output_filter %}
+set interfaces {{ interface.name }} unit 0 family ethernet-switching filter output {{ output_filter }}
+            {% endif %}
+    {% endif %}{# end lag #}
+{% endif %}{# end enabled #}
+        {% endfor %}
+        {% if ns.dev_count > 0 %}
+set chassis aggregated-devices ethernet device-count {{ ns.dev_count }}
+        {% endif %}

@@ -1,0 +1,6 @@
+{% if communities is defined %}
+    {%  for group in communities %}
+        {# set policy-options as-path-group EXAMPLE-PEER as-path EXAMPLE 65001 #}
+set policy-options community {{ group['name'] }} members {{ group['community'] }}
+    {%  endfor %}
+{% endif %}

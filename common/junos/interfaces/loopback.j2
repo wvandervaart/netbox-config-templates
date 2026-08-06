@@ -1,0 +1,27 @@
+{% set interface_ids = [] %}
+{% for interface in device_interfaces %}
+    {% if interface.enabled and 'lo0' in interface.name %}
+        {% set iface = interface.name | replace(".", " unit ") %}
+        {% set input_filter    = interface.cf.get('INPUT_FILTER') %}
+        {% set input_filter_v6 = interface.cf.get('INPUT_FILTER_V6') %}
+        {% if input_filter %}
+set interfaces {{ iface }} family inet filter input {{ input_filter }}
+        {% endif %}
+        {% if input_filter_v6 %}
+set interfaces {{ iface }} family inet6 filter input {{ input_filter_v6 }}
+        {% endif %}
+        {% if interface.id not in interface_ids %}
+            {% set vrfname = interface.vrf.name if interface.vrf.name is defined else "global" %}
+set interfaces {{ iface }} description "Loopback :: vrf:{{ vrfname }}"
+            {% set _ = interface_ids.append(interface.id) %}
+        {% endif %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% if ip.status == 'active' %}
+                {% set family  = 'inet' if ip.family == 4 else 'inet6' %}
+                {% set is_primary = ip.cf.get('PRIMARY') %}
+                {% set primary = "primary" if is_primary else "" %}
+set interfaces {{ iface }} family {{ family }} address {{ ip.address }} {{ primary }}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}

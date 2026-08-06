@@ -1,0 +1,18 @@
+delete snmp
+set snmp contact "{{ snmp.contact }}"
+set snmp location "region: {{ device.site.region.slug }} dc: {{ device.site.slug }} room: {{ device.location.slug }} rack: {{ device.rack.name }}"
+set snmp routing-instance-access
+{# legacy static SNMP config #}
+{% if snmp.community is defined %}
+    {% for co in snmp.community %}
+set snmp community {{ co.name }} authorization read-only
+        {% for cl in co.clients %}
+            {% if cl.vrf is defined %}
+                {% set vrf = " routing-instance " + cl.vrf %}
+            {% else %}
+                {% set  vrf = "" %}
+            {% endif %}
+set snmp community {{ co.name }}{{ vrf }} clients {{ cl.address }}
+        {%  endfor %}
+    {% endfor %}
+{% endif %}

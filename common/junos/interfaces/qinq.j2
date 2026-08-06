@@ -1,0 +1,54 @@
+{# -- Macros ----------------------------------------------------- #}
+{%- macro build_description(interface) %}
+    {%- set ep = interface.connected_endpoints[0] if interface.connected_endpoints else None %}
+    {%- if ep %}
+        {%- set ep_label = (ep.device.name ~ "-" ~ ep.name) if ep.device is defined else ep.name %}
+        {%- set desc = (interface.description ~ " :: " ~ ep_label) if interface.description else ep_label %}
+    {%- else %}
+        {%- set desc = interface.description %}
+    {%- endif %}
+    {%- if interface.link_peers and interface.link_peers[0].cable is defined and interface.link_peers[0].cable.label %}
+        {%- set desc = desc ~ " :: " ~ interface.link_peers[0].cable.label %}
+    {%- endif %}
+    {{- desc }}
+{%- endmacro %}
+{% for interface in device_interfaces %}
+    {% if interface.mode == "q-in-q" and interface.qinq_svlan.id is defined %}
+        {% set description = (build_description(interface) | trim) ~ " :: " ~ interface.qinq_svlan.name %}
+        {% set has_mtu    = interface.mtu | int > 0 %}
+        {% set in_filter  = interface.cf.get('INPUT_FILTER') %}
+        {% set out_filter = interface.cf.get('OUTPUT_FILTER') %}
+        {% set is_maintenance = "maintenance" in interface.tags.names() %}
+        {% set description = (description ~ " :: MAINT") if is_maintenance else description %}
+        {% if interface.enabled %}
+            {# -- Customer VLANs are linked back to the S-VLAN via
+               VLAN.qinq_svlan, not via this interface's tagged_vlans (which
+               q-in-q mode leaves empty) - see VLAN qinq_role Service/Customer #}
+            {% set customer_vids = ipam.VLAN.objects.filter(qinq_svlan=interface.qinq_svlan) | map(attribute='vid') | list %}
+set interfaces {{ interface.name }} description "{{ description }}"
+set interfaces {{ interface.name }} vlan-tagging
+set interfaces {{ interface.name }} encapsulation extended-vlan-bridge
+            {% if has_mtu %}
+set interfaces {{ interface.name }} mtu {{ interface.mtu }}
+            {% endif %}
+set interfaces {{ interface.name }} unit 0 vlan-id-list [{{ customer_vids | join(" ") }}]
+set interfaces {{ interface.name }} unit 0 input-vlan-map push
+set interfaces {{ interface.name }} unit 0 input-vlan-map vlan-id {{ interface.qinq_svlan.vid }}
+set interfaces {{ interface.name }} unit 0 output-vlan-map pop
+            {% if in_filter %}
+set interfaces {{ interface.name }} unit 0 filter input {{ in_filter }}
+            {% endif %}
+            {% if out_filter %}
+set interfaces {{ interface.name }} unit 0 filter output {{ out_filter }}
+            {% endif %}
+
+set vlans Q-in-Q interface {{ interface.name }}.0
+set protocols layer2-control mac-rewrite interface {{ interface.name }} protocol all
+        {% else %}
+            {# -- Disabled interface ----------------------------------------- #}
+            {% set description = (description ~ " :: DISABLED") if description else "DISABLED" %}
+set interfaces {{ interface.name }} description "{{ description }}"
+set interfaces {{ interface.name }} disable
+        {% endif %}
+    {% endif %}
+{% endfor %}

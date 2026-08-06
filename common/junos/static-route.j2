@@ -1,0 +1,16 @@
+{# first delete static routes #}
+delete routing-options static
+{% for route in device.static_routes.all() %}
+    {% set nexthop = "discard" if route.next_hop | string == "255.255.255.255" else "next-hop " + route.next_hop | string %}
+    {% set is_v6 = ':' in route.prefix | string %}
+    {% if route.vrf is defined and route.vrf != None %}
+        {% set base = "set routing-instances " + route.vrf.name + " routing-options" + (" rib " + route.vrf.name + ".inet6.0" if is_v6 else "") %}
+    {% else %}
+        {% set base = "set routing-options" + (" rib inet6.0" if is_v6 else "") %}
+    {% endif %}
+{{ base }} static route {{ route.prefix }} {{ nexthop }}
+    {% if route.cf.BFD == True %}
+{{ base }} static route {{ route.prefix }} bfd-liveness-detection minimum-interval 300
+{{ base }} static route {{ route.prefix }} bfd-liveness-detection multiplier 3
+    {% endif %}
+{% endfor %}

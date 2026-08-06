@@ -1,0 +1,4791 @@
+{
+  "bgp_peer_groups": [],
+  "bgp_sessions": [],
+  "config_context": {
+    "bgp": {
+      "asn": 65000,
+      "clusterid": "1.1.1.1",
+      "key": "REDACTED-see-fetch_netbox_snapshot.py"
+    },
+    "ddos_protection": {
+      "protocols": [
+        {
+          "aggregate": {
+            "bandwidth": 2000,
+            "burst": 1000
+          },
+          "name": "arp"
+        }
+      ]
+    },
+    "enhanced_hash_key": {
+      "family": {
+        "inet": [
+          "no-incoming-port",
+          "no-incoming-device",
+          "no-l4-source-port",
+          "no-l4-destination-port",
+          "no-protocol"
+        ],
+        "inet6": [
+          "no-incoming-port",
+          "no-incoming-device",
+          "no-l4-source-port",
+          "no-l4-destination-port"
+        ]
+      }
+    },
+    "group_config": [
+      "set firewall family inet filter protect-e4c term allow-icmp from protocol icmp",
+      "set firewall family inet filter protect-e4c term allow-icmp then accept",
+      "set firewall family inet filter protect-e4c term allow-pim from protocol pim",
+      "set firewall family inet filter protect-e4c term allow-pim then accept",
+      "set firewall family inet filter protect-e4c term allow-input from destination-address 224.0.0.0/4",
+      "set firewall family inet filter protect-e4c term allow-input from protocol udp",
+      "set firewall family inet filter protect-e4c term allow-input then accept",
+      "set firewall family inet filter protect-e4c term reject-else then discard",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-igmp from protocol igmp",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-igmp then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-pim from protocol pim",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-pim then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-traceroute-udp from protocol udp",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-traceroute-udp from destination-port 33434-33534",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-traceroute-udp then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-icmp from protocol icmp",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-icmp from icmp-type echo-request",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-icmp from icmp-type echo-reply",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-icmp then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-icmp-error from protocol icmp",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-icmp-error from icmp-type time-exceeded",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-icmp-error from icmp-type unreachable",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-icmp-error then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bgp-src179 from source-prefix-list bgp-peers-ri",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bgp-src179 from protocol tcp",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bgp-src179 from source-port 179",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bgp-src179 then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bgp-dst179 from source-prefix-list bgp-peers-ri",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bgp-dst179 from protocol tcp",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bgp-dst179 from destination-port 179",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bgp-dst179 then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-ospf from protocol ospf",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-ospf then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-vrrp from destination-address 224.0.0.18/32",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-vrrp from protocol vrrp",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-vrrp from protocol ah",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-vrrp then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-msdp-src639 from protocol tcp",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-msdp-src639 from source-port 639",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-msdp-src639 then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bfd from protocol udp",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bfd from destination-port 3784",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-bfd from destination-port 4784",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-msdp-dst639 from protocol tcp",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-msdp-dst639 from destination-port 639",
+      "set firewall family inet filter re-protect-vr-multicast-internal term allow-msdp-dst639 then accept",
+      "set firewall family inet filter re-protect-vr-multicast-internal term discard then discard",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-igmp from protocol igmp",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-igmp then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-pim from protocol pim",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-pim then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-traceroute-udp from protocol udp",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-traceroute-udp from destination-port 33434-33534",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-traceroute-udp then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-icmp from protocol icmp",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-icmp from icmp-type echo-request",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-icmp from icmp-type echo-reply",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-icmp then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-icmp-error from protocol icmp",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-icmp-error from icmp-type time-exceeded",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-icmp-error from icmp-type unreachable",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-icmp-error then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bgp-src179 from source-prefix-list bgp-peers-ri",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bgp-src179 from protocol tcp",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bgp-src179 from source-port 179",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bgp-src179 then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bgp-dst179 from source-prefix-list bgp-peers-ri",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bgp-dst179 from protocol tcp",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bgp-dst179 from destination-port 179",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bgp-dst179 then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-ospf from protocol ospf",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-ospf then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-vrrp from destination-address 224.0.0.18/32",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-vrrp from protocol vrrp",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-vrrp from protocol ah",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-vrrp then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bfd from protocol udp",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bfd from destination-port 3784",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-bfd from destination-port 4784",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-msdp-src639 from protocol tcp",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-msdp-src639 from source-port 639",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-msdp-src639 then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-msdp-dst639 from protocol tcp",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-msdp-dst639 from destination-port 639",
+      "set firewall family inet filter re-protect-vr-multicast-external term allow-msdp-dst639 then accept",
+      "set firewall family inet filter re-protect-vr-multicast-external term discard then discard",
+      "set forwarding-options storm-control-profiles default all no-multicast"
+    ],
+    "hash_key": {
+      "family": {
+        "inet": [
+          "layer-3"
+        ],
+        "inet6": [
+          "layer-3",
+          "layer-4"
+        ]
+      }
+    },
+    "manual_config": [
+      "set routing-instances multicast-internal protocols msdp local-address 10.255.255.1",
+      "set routing-instances multicast-internal protocols msdp peer 10.255.255.2",
+      "set interfaces xe-0/0/39 vlan-tagging",
+      "set interfaces xe-0/0/39 encapsulation flexible-ethernet-services",
+      "set routing-instances multicast-external protocols pim rp local address 10.254.255.1",
+      "set routing-instances multicast-internal protocols pim rp static address 10.255.255.0",
+      "delete interfaces xe-0/0/39 mtu",
+      "delete protocols vstp interface all"
+    ],
+    "ospf": {
+      "area": "0.0.0.0",
+      "key": "REDACTED-see-fetch_netbox_snapshot.py"
+    },
+    "snmp": {
+      "auth_key": "REDACTED-see-fetch_netbox_snapshot.py",
+      "community": [
+        {
+          "clients": [
+            {
+              "address": "10.99.0.12/32",
+              "vrf": "mgmt_junos"
+            },
+            {
+              "address": "10.100.0.252/32",
+              "vrf": "mgmt_junos"
+            },
+            {
+              "address": "10.99.0.14/32"
+            },
+            {
+              "address": "172.18.7.30/31"
+            },
+            {
+              "address": "10.99.0.21/32"
+            },
+            {
+              "address": "10.99.0.15/32"
+            },
+            {
+              "address": "172.16.249.80/32"
+            },
+            {
+              "address": "10.99.0.13/32"
+            },
+            {
+              "address": "10.99.0.10/32",
+              "vrf": "mgmt_junos"
+            }
+          ],
+          "name": "public-ro-1"
+        }
+      ],
+      "contact": "support@example.org",
+      "group": "snmp_group",
+      "priv_key": "REDACTED-see-fetch_netbox_snapshot.py",
+      "user": "public-ro-1",
+      "v3": {
+        "auth_key": "REDACTED-see-fetch_netbox_snapshot.py",
+        "group": "snmp_group",
+        "priv_key": "REDACTED-see-fetch_netbox_snapshot.py",
+        "user": "public-ro-1"
+      }
+    },
+    "switch_options": {
+      "t5": "target:65000:123",
+      "target": "target:65000:1"
+    },
+    "users": {
+      "junos": [
+        {
+          "root_auth": "REDACTED-see-fetch_netbox_snapshot.py"
+        }
+      ],
+      "exampleorg": [
+        {
+          "_name": "alice",
+          "arista_pw": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLE",
+          "pubkeytype": "ssh-ed25519",
+          "systems": [
+            {
+              "_name": "junos",
+              "class": "super-user"
+            },
+            {
+              "_name": "arista",
+              "class": "network-admin"
+            }
+          ],
+          "uid": 5010
+        },
+        {
+          "_name": "bob",
+          "arista_pw": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLE",
+          "pubkeytype": "ssh-ed25519",
+          "systems": [
+            {
+              "_name": "junos",
+              "class": "super-user"
+            },
+            {
+              "_name": "arista",
+              "class": "network-admin"
+            }
+          ],
+          "uid": 5011
+        },
+        {
+          "_name": "drone",
+          "arista_pw": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEEXAMPLEKEY==",
+          "pubkeytype": "ssh-rsa",
+          "systems": [
+            {
+              "_name": "junos",
+              "class": "super-user"
+            },
+            {
+              "_name": "arista",
+              "class": "network-admin"
+            }
+          ],
+          "uid": 5005
+        },
+        {
+          "_name": "sgbcadmin",
+          "arista_pw": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkey": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkeytype": "encrypted-password",
+          "systems": [
+            {
+              "_name": "junos",
+              "class": "READ_ONLY"
+            },
+            {
+              "_name": "arista",
+              "class": "network-operator"
+            }
+          ],
+          "uid": 5001
+        },
+        {
+          "_name": "gnmi-user",
+          "arista_pw": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkey": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkeytype": "encrypted-password",
+          "systems": [
+            {
+              "_name": "junos",
+              "class": "grpc-operator"
+            },
+            {
+              "_name": "arista",
+              "class": "network-operator"
+            }
+          ],
+          "uid": 5006
+        },
+        {
+          "_name": "peak",
+          "arista_pw": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkey": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkeytype": "encrypted-password",
+          "systems": [
+            {
+              "_name": "junos",
+              "class": "super-user"
+            },
+            {
+              "_name": "arista",
+              "class": "network-admin"
+            }
+          ],
+          "uid": 5002
+        },
+        {
+          "_name": "fallback",
+          "arista_pw": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkey": "REDACTED-see-fetch_netbox_snapshot.py",
+          "pubkeytype": "encrypted-password",
+          "systems": [
+            {
+              "_name": "junos",
+              "class": "fallback"
+            },
+            {
+              "_name": "arista",
+              "class": "network-operator"
+            }
+          ],
+          "uid": 5003
+        }
+      ]
+    },
+    "utility": {
+      "dns": [
+        "172.16.252.211",
+        "172.16.252.212"
+      ],
+      "ntp": [
+        "10.20.30.250"
+      ],
+      "syslog": [
+        {
+          "_name": "10.20.30.250",
+          "port": "514"
+        }
+      ],
+      "timezone": "Europe/Amsterdam"
+    }
+  },
+  "device": {
+    "custom_fields": {
+      "DEFAULT_AS_PREPEND": null,
+      "GNMI_MONITORED": false,
+      "VSTP_ALL_INT_ENABLED": false,
+      "VSTP_BRIDGEID": null,
+      "VSTP_BRIDGEPRIO": "4k",
+      "VSTP_ENABLED": true
+    },
+    "device_type_model": "QFX5120-48Y-AFO2",
+    "id": 1160,
+    "location_slug": "610",
+    "name": "mds1-610-11-nl1",
+    "platform": "junos",
+    "primary_ip": "172.18.254.11/24",
+    "rack_name": "11",
+    "region_slug": "nl",
+    "role": "Distribution Switch",
+    "site_slug": "nl1",
+    "tags": [
+      "AUTOMATED",
+      "MULTICAST",
+      "drone",
+      "suzieq"
+    ]
+  },
+  "interfaces": [
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26244,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "et-0/0/48",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "100gbase-x-qsfp28",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26245,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "et-0/0/49",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "100gbase-x-qsfp28",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26246,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "et-0/0/50",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "100gbase-x-qsfp28",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26247,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "et-0/0/51",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "100gbase-x-qsfp28",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26248,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "et-0/0/52",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "100gbase-x-qsfp28",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26249,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "et-0/0/53",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "100gbase-x-qsfp28",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26250,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "et-0/0/54",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "100gbase-x-qsfp28",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26251,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "et-0/0/55",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "100gbase-x-qsfp28",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 0,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": true,
+        "readonly": null
+      },
+      "description": "E4C-DATA-A0000008",
+      "enabled": true,
+      "id": 26196,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "access",
+      "mtu": 1514,
+      "name": "ge-0/0/0",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "1000base-x-sfp",
+      "untagged_vlan": {
+        "id": 117,
+        "name": "VLAN1201",
+        "vid": 1201
+      },
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": true,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": "protect-e4c",
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": true,
+        "OSPF_AREA": "0.0.0.0",
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": true,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": "sparse",
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 0,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "MCAST:L3-MCAST-MGW-E4C-A0000005",
+      "enabled": true,
+      "id": 26197,
+      "ip_addresses": [
+        {
+          "address": "10.1.1.62/30",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": 1514,
+      "name": "ge-0/0/1",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "1000base-x-sfp",
+      "untagged_vlan": null,
+      "vrf": "multicast-external"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 0,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26198,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "ge-0/0/2",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "1000base-x-sfp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 0,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26199,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "ge-0/0/3",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "1000base-x-sfp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "APTV-XC5100-01",
+        "name": "[3] IP-200 Data A"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 24,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "APTV-XC5100-01",
+      "enabled": true,
+      "id": 26220,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "ge-0/0/24",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "1000base-x-sfp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "APTV-XC5100-01",
+        "name": "[3] IP-200 Data B"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 24,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "APTV-XC5100-01",
+      "enabled": true,
+      "id": 26221,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "ge-0/0/25",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "1000base-x-sfp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "APTV-XC5100-01",
+        "name": "[2] IP-200 Data A"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 24,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "APTV-XC5100-01",
+      "enabled": true,
+      "id": 26222,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "ge-0/0/26",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "1000base-x-sfp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "APTV-XC5100-01",
+        "name": "[2] IP-200 Data B"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 24,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26223,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "ge-0/0/27",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "1000base-x-sfp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 4,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26200,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/4",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 4,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "VendorC-X20-10.100.0.60-Slot1-D1",
+      "enabled": true,
+      "id": 26201,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/5",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        },
+        {
+          "id": 231,
+          "name": "VLAN350",
+          "vid": 350
+        },
+        {
+          "id": 75,
+          "name": "VLAN397",
+          "vid": 397
+        },
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        },
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": true,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": "protect-e4c",
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": true,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": "sparse",
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 4,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "MCAST:L3-MCAST-USG-E4C-MAIN-5.13.18-A0000002",
+      "enabled": true,
+      "id": 26202,
+      "ip_addresses": [
+        {
+          "address": "10.1.1.73/30",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": 1514,
+      "name": "xe-0/0/6",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": "multicast-external"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 4,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "VendorC-X20-10.100.0.60-Slot2-D1",
+      "enabled": true,
+      "id": 26203,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/7",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 250,
+          "name": "VLAN150",
+          "vid": 150
+        },
+        {
+          "id": 231,
+          "name": "VLAN350",
+          "vid": 350
+        },
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 8,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "PeerI-A0000004",
+      "enabled": true,
+      "id": 26204,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": 1514,
+      "name": "xe-0/0/8",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 8,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "X20-VendorA-main-slot1-d1",
+      "enabled": true,
+      "id": 26205,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/9",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        },
+        {
+          "id": 128,
+          "name": "VLAN3301",
+          "vid": 3301
+        },
+        {
+          "id": 135,
+          "name": "VLAN3302",
+          "vid": 3302
+        },
+        {
+          "id": 129,
+          "name": "VLAN3303",
+          "vid": 3303
+        },
+        {
+          "id": 136,
+          "name": "VLAN3304",
+          "vid": 3304
+        },
+        {
+          "id": 130,
+          "name": "VLAN3305",
+          "vid": 3305
+        },
+        {
+          "id": 137,
+          "name": "VLAN3306",
+          "vid": 3306
+        },
+        {
+          "id": 131,
+          "name": "VLAN3307",
+          "vid": 3307
+        },
+        {
+          "id": 138,
+          "name": "VLAN3308",
+          "vid": 3308
+        },
+        {
+          "id": 139,
+          "name": "VLAN3309",
+          "vid": 3309
+        },
+        {
+          "id": 125,
+          "name": "VLAN3343",
+          "vid": 3343
+        },
+        {
+          "id": 127,
+          "name": "VLAN3344",
+          "vid": 3344
+        },
+        {
+          "id": 162,
+          "name": "VLAN3399",
+          "vid": 3399
+        },
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 8,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "X20-VendorA-main-slot1-d2",
+      "enabled": true,
+      "id": 26206,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/10",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 8,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "CAST:E4C-CZ-MAIN-VLAN2421-5.13.18-A0000009",
+      "enabled": true,
+      "id": 26207,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "access",
+      "mtu": 1514,
+      "name": "xe-0/0/11",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": {
+        "id": 269,
+        "name": "VLAN2421",
+        "vid": 2421
+      },
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 12,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "X20-VendorA-main-slot2-d1",
+      "enabled": true,
+      "id": 26208,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/12",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        },
+        {
+          "id": 128,
+          "name": "VLAN3301",
+          "vid": 3301
+        },
+        {
+          "id": 135,
+          "name": "VLAN3302",
+          "vid": 3302
+        },
+        {
+          "id": 129,
+          "name": "VLAN3303",
+          "vid": 3303
+        },
+        {
+          "id": 136,
+          "name": "VLAN3304",
+          "vid": 3304
+        },
+        {
+          "id": 130,
+          "name": "VLAN3305",
+          "vid": 3305
+        },
+        {
+          "id": 137,
+          "name": "VLAN3306",
+          "vid": 3306
+        },
+        {
+          "id": 131,
+          "name": "VLAN3307",
+          "vid": 3307
+        },
+        {
+          "id": 125,
+          "name": "VLAN3343",
+          "vid": 3343
+        },
+        {
+          "id": 127,
+          "name": "VLAN3344",
+          "vid": 3344
+        },
+        {
+          "id": 162,
+          "name": "VLAN3399",
+          "vid": 3399
+        },
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 12,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "X20-VendorA-main-slot2-d2",
+      "enabled": true,
+      "id": 26209,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/13",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 250,
+          "name": "VLAN150",
+          "vid": 150
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 12,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "X20APTV06-MAIN-slot1-d1",
+      "enabled": true,
+      "id": 26210,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/14",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        },
+        {
+          "id": 128,
+          "name": "VLAN3301",
+          "vid": 3301
+        },
+        {
+          "id": 135,
+          "name": "VLAN3302",
+          "vid": 3302
+        },
+        {
+          "id": 129,
+          "name": "VLAN3303",
+          "vid": 3303
+        },
+        {
+          "id": 136,
+          "name": "VLAN3304",
+          "vid": 3304
+        },
+        {
+          "id": 130,
+          "name": "VLAN3305",
+          "vid": 3305
+        },
+        {
+          "id": 137,
+          "name": "VLAN3306",
+          "vid": 3306
+        },
+        {
+          "id": 131,
+          "name": "VLAN3307",
+          "vid": 3307
+        },
+        {
+          "id": 138,
+          "name": "VLAN3308",
+          "vid": 3308
+        },
+        {
+          "id": 139,
+          "name": "VLAN3309",
+          "vid": 3309
+        },
+        {
+          "id": 220,
+          "name": "VLAN3315",
+          "vid": 3315
+        },
+        {
+          "id": 222,
+          "name": "VLAN3316",
+          "vid": 3316
+        },
+        {
+          "id": 224,
+          "name": "VLAN3317",
+          "vid": 3317
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 12,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "X20APTV06-MAIN-slot1-d2",
+      "enabled": true,
+      "id": 26211,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/15",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        },
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 16,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "X20APTV06-MAIN-slot2-d1",
+      "enabled": true,
+      "id": 26212,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/16",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        },
+        {
+          "id": 149,
+          "name": "VLAN3310",
+          "vid": 3310
+        },
+        {
+          "id": 151,
+          "name": "VLAN3311",
+          "vid": 3311
+        },
+        {
+          "id": 153,
+          "name": "VLAN3312",
+          "vid": 3312
+        },
+        {
+          "id": 155,
+          "name": "VLAN3313",
+          "vid": 3313
+        },
+        {
+          "id": 157,
+          "name": "VLAN3314",
+          "vid": 3314
+        },
+        {
+          "id": 220,
+          "name": "VLAN3315",
+          "vid": 3315
+        },
+        {
+          "id": 222,
+          "name": "VLAN3316",
+          "vid": 3316
+        },
+        {
+          "id": 224,
+          "name": "VLAN3317",
+          "vid": 3317
+        },
+        {
+          "id": 279,
+          "name": "VLAN3318",
+          "vid": 3318
+        },
+        {
+          "id": 53,
+          "name": "VLAN999",
+          "vid": 999
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 16,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "X20APTV06-MAIN-slot2-d2",
+      "enabled": true,
+      "id": 26213,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/17",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "VendorB-analyzer-10",
+        "name": "eno2"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 16,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "VendorB-analyzer-10",
+      "enabled": true,
+      "id": 26214,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/18",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        },
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 16,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "VendorB-analyzer-01",
+      "enabled": true,
+      "id": 26215,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/19",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        },
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        },
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 20,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "VendorB-analyzer-04",
+      "enabled": true,
+      "id": 26216,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/20",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        },
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "VendorB-analyzer-07",
+        "name": "em2"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 20,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "agiptv04",
+      "enabled": true,
+      "id": 26217,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/21",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        },
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 20,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "20mo014-mainlink",
+      "enabled": true,
+      "id": 26218,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/22",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 250,
+          "name": "VLAN150",
+          "vid": 150
+        },
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        },
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "Edgeware-Orbit-NGT-HMG9 (retrans)",
+        "name": "eths0"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 20,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "edgeware-retrans-",
+      "enabled": true,
+      "id": 26219,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "access",
+      "mtu": 1514,
+      "name": "xe-0/0/23",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": {
+        "id": 250,
+        "name": "VLAN150",
+        "vid": 150
+      },
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "VendorB-analyzer-05",
+        "name": "p1p1"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 28,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "VendorB-analyzer-05",
+      "enabled": true,
+      "id": 26224,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/28",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 250,
+          "name": "VLAN150",
+          "vid": 150
+        },
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        },
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 28,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26225,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/29",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 28,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26226,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/30",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 28,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26227,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/31",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 32,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26228,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/32",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 32,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26229,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/33",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 32,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26230,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/34",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 32,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26231,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/35",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 36,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26232,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/36",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "res1-607-32-nl1",
+        "name": "xe-0/0/32"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 36,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26233,
+      "ip_addresses": [],
+      "lag": "ae6",
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/37",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "res1-607-32-nl1",
+        "name": "xe-0/0/33"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 36,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26234,
+      "ip_addresses": [],
+      "lag": "ae6",
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/38",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "leaf1-610-12-nl1",
+        "name": "xe-0/0/0"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 36,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26235,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1518,
+      "name": "xe-0/0/39",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 72,
+          "name": "VLAN391",
+          "vid": 391
+        },
+        {
+          "id": 75,
+          "name": "VLAN397",
+          "vid": 397
+        },
+        {
+          "id": 117,
+          "name": "VLAN1201",
+          "vid": 1201
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": 3,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": "0.0.0.0",
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": true,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": 3,
+        "PIMIFACEMODE": "sparse",
+        "PIMIFACEPRIO": 5,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "l3_mcast",
+      "enabled": true,
+      "id": 26811,
+      "ip_addresses": [
+        {
+          "address": "10.3.98.1/24",
+          "custom_fields": {
+            "PRIMARY": true
+          },
+          "family": 4,
+          "status": "active",
+          "tags": [
+            "PRIMARY"
+          ]
+        },
+        {
+          "address": "10.3.98.2/24",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/39.398",
+      "parent": "xe-0/0/39",
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": null,
+      "vrf": "multicast-internal"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "leaf1-610-12-nl1",
+        "name": "xe-0/0/10"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 40,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26236,
+      "ip_addresses": [],
+      "lag": "ae5",
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/40",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "leaf1-610-14-nl1",
+        "name": "xe-0/0/0"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 40,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26237,
+      "ip_addresses": [],
+      "lag": "ae5",
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/41",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "sw01-607-11-ams1",
+        "name": "xe-0/2/1"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 40,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26238,
+      "ip_addresses": [],
+      "lag": "ae4",
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/42",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "qfx-617-a-ngt-mixcore",
+        "name": "xe-0/0/41"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 40,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26239,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "xe-0/0/43",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 198,
+          "name": "VLAN751",
+          "vid": 751
+        },
+        {
+          "id": 211,
+          "name": "VLAN902",
+          "vid": 902
+        }
+      ],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "4300-616-a-ngt-vc0",
+        "name": "xe-0/2/1"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 44,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26240,
+      "ip_addresses": [],
+      "lag": "ae3",
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/44",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "sw01-a-blue-607-16-ams1",
+        "name": "xe-0/2/0"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 44,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26241,
+      "ip_addresses": [],
+      "lag": "ae2",
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/45",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "mds2-607-18-nl1",
+        "name": "xe-0/0/46"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 44,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26242,
+      "ip_addresses": [],
+      "lag": "ae1",
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/46",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "kn07_4550",
+        "name": "xe-0/0/23"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": 44,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26243,
+      "ip_addresses": [],
+      "lag": "ae0",
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "xe-0/0/47",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "10gbase-x-sfpp",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "core:kn07_4550",
+      "enabled": true,
+      "id": 26794,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "ae0",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 7,
+          "name": "VLAN300",
+          "vid": 300
+        },
+        {
+          "id": 250,
+          "name": "VLAN150",
+          "vid": 150
+        }
+      ],
+      "tags": [],
+      "type": "lag",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "core:mds2-607-18-nl1",
+      "enabled": true,
+      "id": 26795,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "ae1",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 267,
+          "name": "VLAN10",
+          "vid": 10
+        },
+        {
+          "id": 231,
+          "name": "VLAN350",
+          "vid": 350
+        },
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        },
+        {
+          "id": 210,
+          "name": "VLAN901",
+          "vid": 901
+        }
+      ],
+      "tags": [],
+      "type": "lag",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "core:sw01-a-blue-607-16-ams1",
+      "enabled": true,
+      "id": 26796,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "ae2",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 7,
+          "name": "VLAN300",
+          "vid": 300
+        },
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "lag",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "core:4300-616-A-NGT-VC0",
+      "enabled": true,
+      "id": 26797,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "ae3",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        }
+      ],
+      "tags": [],
+      "type": "lag",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "core:sw01-607-11-ams1",
+      "enabled": true,
+      "id": 26798,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "ae4",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 7,
+          "name": "VLAN300",
+          "vid": 300
+        },
+        {
+          "id": 237,
+          "name": "VLAN320",
+          "vid": 320
+        },
+        {
+          "id": 269,
+          "name": "VLAN2421",
+          "vid": 2421
+        },
+        {
+          "id": 207,
+          "name": "VLAN399",
+          "vid": 399
+        },
+        {
+          "id": 215,
+          "name": "VLAN906",
+          "vid": 906
+        }
+      ],
+      "tags": [],
+      "type": "lag",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "Uplink to leafs",
+      "enabled": true,
+      "id": 26799,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "ae5",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 128,
+          "name": "VLAN3301",
+          "vid": 3301
+        },
+        {
+          "id": 135,
+          "name": "VLAN3302",
+          "vid": 3302
+        },
+        {
+          "id": 129,
+          "name": "VLAN3303",
+          "vid": 3303
+        },
+        {
+          "id": 136,
+          "name": "VLAN3304",
+          "vid": 3304
+        },
+        {
+          "id": 130,
+          "name": "VLAN3305",
+          "vid": 3305
+        },
+        {
+          "id": 137,
+          "name": "VLAN3306",
+          "vid": 3306
+        },
+        {
+          "id": 131,
+          "name": "VLAN3307",
+          "vid": 3307
+        },
+        {
+          "id": 138,
+          "name": "VLAN3308",
+          "vid": 3308
+        },
+        {
+          "id": 139,
+          "name": "VLAN3309",
+          "vid": 3309
+        },
+        {
+          "id": 149,
+          "name": "VLAN3310",
+          "vid": 3310
+        },
+        {
+          "id": 151,
+          "name": "VLAN3311",
+          "vid": 3311
+        },
+        {
+          "id": 153,
+          "name": "VLAN3312",
+          "vid": 3312
+        },
+        {
+          "id": 155,
+          "name": "VLAN3313",
+          "vid": 3313
+        },
+        {
+          "id": 157,
+          "name": "VLAN3314",
+          "vid": 3314
+        },
+        {
+          "id": 220,
+          "name": "VLAN3315",
+          "vid": 3315
+        },
+        {
+          "id": 222,
+          "name": "VLAN3316",
+          "vid": 3316
+        },
+        {
+          "id": 224,
+          "name": "VLAN3317",
+          "vid": 3317
+        },
+        {
+          "id": 279,
+          "name": "VLAN3318",
+          "vid": 3318
+        },
+        {
+          "id": 125,
+          "name": "VLAN3343",
+          "vid": 3343
+        },
+        {
+          "id": 127,
+          "name": "VLAN3344",
+          "vid": 3344
+        },
+        {
+          "id": 162,
+          "name": "VLAN3399",
+          "vid": 3399
+        }
+      ],
+      "tags": [
+        "EXIT-MCAST-A"
+      ],
+      "type": "lag",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "Uplink to res1-607-32-nl1",
+      "enabled": true,
+      "id": 26990,
+      "ip_addresses": [],
+      "lag": null,
+      "mac_address": null,
+      "mode": "tagged",
+      "mtu": 1514,
+      "name": "ae6",
+      "parent": null,
+      "tagged_vlans": [
+        {
+          "id": 7,
+          "name": "VLAN300",
+          "vid": 300
+        },
+        {
+          "id": 250,
+          "name": "VLAN150",
+          "vid": 150
+        }
+      ],
+      "tags": [],
+      "type": "lag",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": {
+        "device_name": "leaf1-610-12-nl1",
+        "name": "ge-0/0/43"
+      },
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26195,
+      "ip_addresses": [
+        {
+          "address": "172.18.254.11/24",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": 1532,
+      "name": "em0",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "1000base-t",
+      "untagged_vlan": null,
+      "vrf": "mgmt_junos"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": "0.0.0.0",
+        "OSPF_BFD": true,
+        "OSPF_NETWORK_TYPE": "p2p",
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": "2",
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": "sparse",
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26462,
+      "ip_addresses": [
+        {
+          "address": "10.255.254.0/31",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": "access",
+      "mtu": 1500,
+      "name": "irb.10",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": {
+        "id": 267,
+        "name": "VLAN10",
+        "vid": 10
+      },
+      "vrf": "multicast-internal"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": 3,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": "sparse",
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26463,
+      "ip_addresses": [
+        {
+          "address": "10.193.1.254/24",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": "access",
+      "mtu": 1500,
+      "name": "irb.320",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": {
+        "id": 237,
+        "name": "VLAN320",
+        "vid": 320
+      },
+      "vrf": "multicast-external"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": 3,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": "0.0.0.0",
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": true,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": "sparse",
+        "PIMIFACEPRIO": 5,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26464,
+      "ip_addresses": [
+        {
+          "address": "10.150.0.1/24",
+          "custom_fields": {
+            "PRIMARY": true
+          },
+          "family": 4,
+          "status": "active",
+          "tags": [
+            "PRIMARY"
+          ]
+        },
+        {
+          "address": "10.150.0.2/24",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": "access",
+      "mtu": 1500,
+      "name": "irb.350",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": {
+        "id": 231,
+        "name": "VLAN350",
+        "vid": 350
+      },
+      "vrf": "multicast-internal"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": 3,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": "0.0.0.0",
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": true,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": "sparse",
+        "PIMIFACEPRIO": 5,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26465,
+      "ip_addresses": [
+        {
+          "address": "10.3.99.1/24",
+          "custom_fields": {
+            "PRIMARY": true
+          },
+          "family": 4,
+          "status": "active",
+          "tags": [
+            "PRIMARY"
+          ]
+        },
+        {
+          "address": "10.3.99.2/24",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": "access",
+      "mtu": 1500,
+      "name": "irb.399",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": {
+        "id": 207,
+        "name": "VLAN399",
+        "vid": 399
+      },
+      "vrf": "multicast-internal"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": "0.0.0.0",
+        "OSPF_BFD": true,
+        "OSPF_NETWORK_TYPE": "p2p",
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": "2",
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": "sparse",
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26466,
+      "ip_addresses": [
+        {
+          "address": "10.254.254.0/31",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": "access",
+      "mtu": 1500,
+      "name": "irb.901",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": {
+        "id": 210,
+        "name": "VLAN901",
+        "vid": 901
+      },
+      "vrf": "multicast-external"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": "0.0.0.0",
+        "OSPF_BFD": true,
+        "OSPF_NETWORK_TYPE": "p2p",
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": "2",
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": "sparse",
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26467,
+      "ip_addresses": [
+        {
+          "address": "10.254.254.2/31",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": "access",
+      "mtu": 1500,
+      "name": "irb.902",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": {
+        "id": 211,
+        "name": "VLAN902",
+        "vid": 902
+      },
+      "vrf": "multicast-external"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": 3,
+        "INPUT_FILTER": null,
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": "0.0.0.0",
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": true,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": "sparse",
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26468,
+      "ip_addresses": [
+        {
+          "address": "10.254.254.14/31",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": "access",
+      "mtu": 1500,
+      "name": "irb.906",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": {
+        "id": 215,
+        "name": "VLAN906",
+        "vid": 906
+      },
+      "vrf": "multicast-external"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": true,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": "re-protect",
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": null,
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": null,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26252,
+      "ip_addresses": [
+        {
+          "address": "127.0.0.1/32",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": null,
+      "name": "lo0.0",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": null,
+      "vrf": null
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": "re-protect-vr-multicast-internal",
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": "0.0.0.0",
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": true,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26460,
+      "ip_addresses": [
+        {
+          "address": "10.255.255.0/32",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        },
+        {
+          "address": "10.255.255.1/32",
+          "custom_fields": {
+            "PRIMARY": true
+          },
+          "family": 4,
+          "status": "active",
+          "tags": [
+            "PRIMARY"
+          ]
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": 1532,
+      "name": "lo0.1",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": null,
+      "vrf": "multicast-internal"
+    },
+    {
+      "cable_label": null,
+      "connected_endpoint": null,
+      "custom_fields": {
+        "FEC": null,
+        "IGMPIFACEDISABLE": null,
+        "IGMPIFACEVERSION": null,
+        "INPUT_FILTER": "re-protect-vr-multicast-external",
+        "INPUT_FILTER_V6": null,
+        "IXPORT": false,
+        "LLDP_OFF": false,
+        "OSPF_AREA": "0.0.0.0",
+        "OSPF_BFD": null,
+        "OSPF_NETWORK_TYPE": null,
+        "OSPF_PASSIVE": true,
+        "OSPF_VERSION": null,
+        "OUTPUT_FILTER": null,
+        "PIMIFACEHELLO": null,
+        "PIMIFACEMODE": null,
+        "PIMIFACEPRIO": null,
+        "QFX_PORTGROUP": null,
+        "RSTP_OFF": false,
+        "SFLOW": false,
+        "VSTP_OFF": false,
+        "readonly": null
+      },
+      "description": "",
+      "enabled": true,
+      "id": 26461,
+      "ip_addresses": [
+        {
+          "address": "10.254.255.1/32",
+          "family": 4,
+          "status": "active",
+          "tags": []
+        }
+      ],
+      "lag": null,
+      "mac_address": null,
+      "mode": null,
+      "mtu": 1532,
+      "name": "lo0.2",
+      "parent": null,
+      "tagged_vlans": [],
+      "tags": [],
+      "type": "virtual",
+      "untagged_vlan": null,
+      "vrf": "multicast-external"
+    }
+  ],
+  "static_routes": [
+    {
+      "custom_fields": {
+        "BFD": false,
+        "BFD_INTERVAL": null
+      },
+      "next_hop": "10.99.0.10",
+      "prefix": "0.0.0.0/0",
+      "vrf": "mgmt_junos"
+    },
+    {
+      "custom_fields": {
+        "BFD": false,
+        "BFD_INTERVAL": null
+      },
+      "next_hop": "10.1.1.74",
+      "prefix": "10.1.0.97/32",
+      "vrf": "multicast-external"
+    },
+    {
+      "custom_fields": {
+        "BFD": false,
+        "BFD_INTERVAL": null
+      },
+      "next_hop": "10.1.1.61",
+      "prefix": "10.3.30.29/32",
+      "vrf": "multicast-external"
+    },
+    {
+      "custom_fields": {
+        "BFD": false,
+        "BFD_INTERVAL": null
+      },
+      "next_hop": "10.1.1.61",
+      "prefix": "10.3.30.37/32",
+      "vrf": "multicast-external"
+    },
+    {
+      "custom_fields": {
+        "BFD": false,
+        "BFD_INTERVAL": null
+      },
+      "next_hop": "10.1.1.74",
+      "prefix": "10.3.200.109/32",
+      "vrf": "multicast-external"
+    },
+    {
+      "custom_fields": {
+        "BFD": false,
+        "BFD_INTERVAL": null
+      },
+      "next_hop": "10.1.1.74",
+      "prefix": "10.3.202.121/32",
+      "vrf": "multicast-external"
+    }
+  ],
+  "vlans": {
+    "VLAN10": {
+      "description": "VendorEmgt",
+      "l2vpn_identifier": 300010,
+      "name": "VLAN10",
+      "tags": [],
+      "vid": 10
+    },
+    "VLAN1201": {
+      "description": "point to point e4c dataminer",
+      "l2vpn_identifier": 301201,
+      "name": "VLAN1201",
+      "tags": [],
+      "vid": 1201
+    },
+    "VLAN150": {
+      "description": "CarrierD-DC2-RETRANS",
+      "l2vpn_identifier": 300150,
+      "name": "VLAN150",
+      "tags": [],
+      "vid": 150
+    },
+    "VLAN2421": {
+      "description": "CZ-LIVE-PROD",
+      "l2vpn_identifier": 302421,
+      "name": "VLAN2421",
+      "tags": [],
+      "vid": 2421
+    },
+    "VLAN300": {
+      "description": "DRAC NGT",
+      "l2vpn_identifier": 300300,
+      "name": "VLAN300",
+      "tags": [],
+      "vid": 300
+    },
+    "VLAN320": {
+      "description": "FOXBELIVE",
+      "l2vpn_identifier": 300320,
+      "name": "VLAN320",
+      "tags": [
+        "IGMP-SNOOPING"
+      ],
+      "vid": 320
+    },
+    "VLAN3301": {
+      "description": "BPK MCAST MAIN nl-bks350-prod01-live/ nl-bks350-prod09-live",
+      "l2vpn_identifier": 303301,
+      "name": "VLAN3301",
+      "tags": [],
+      "vid": 3301
+    },
+    "VLAN3302": {
+      "description": "BPK MCAST MAIN nl-bks350-prod02-live/ nl-bks350-prod10-live",
+      "l2vpn_identifier": 303302,
+      "name": "VLAN3302",
+      "tags": [],
+      "vid": 3302
+    },
+    "VLAN3303": {
+      "description": "BPK MCAST MAIN nl-bks350-prod03-live/ nl-bks350-prod11-live",
+      "l2vpn_identifier": 303303,
+      "name": "VLAN3303",
+      "tags": [],
+      "vid": 3303
+    },
+    "VLAN3304": {
+      "description": "BPK MCAST MAIN nl-bks350-prod04-live/ nl-bks350-prod12-live",
+      "l2vpn_identifier": 303304,
+      "name": "VLAN3304",
+      "tags": [],
+      "vid": 3304
+    },
+    "VLAN3305": {
+      "description": "BPK MCAST MAIN nl-bks350-prod05-live/ nl-bks350-prod13-live",
+      "l2vpn_identifier": 303305,
+      "name": "VLAN3305",
+      "tags": [],
+      "vid": 3305
+    },
+    "VLAN3306": {
+      "description": "BPK MCAST MAIN nl-bks350-prod06-live/ nl-bks350-prod14-live",
+      "l2vpn_identifier": 303306,
+      "name": "VLAN3306",
+      "tags": [],
+      "vid": 3306
+    },
+    "VLAN3307": {
+      "description": "BPK MCAST MAIN nl-bks350-prod07-live/ nl-bks350-prod15-live",
+      "l2vpn_identifier": 303307,
+      "name": "VLAN3307",
+      "tags": [],
+      "vid": 3307
+    },
+    "VLAN3308": {
+      "description": "BPK MCAST MAIN nl-bks350-prod08-live/ nl-bks350-prod16-live",
+      "l2vpn_identifier": 303308,
+      "name": "VLAN3308",
+      "tags": [],
+      "vid": 3308
+    },
+    "VLAN3309": {
+      "description": "BPK MCAST MAIN nl-bks350-prod20-live/ nl-bks350-prod22-live",
+      "l2vpn_identifier": 303309,
+      "name": "VLAN3309",
+      "tags": [],
+      "vid": 3309
+    },
+    "VLAN3310": {
+      "description": "VLAN3310",
+      "l2vpn_identifier": 303310,
+      "name": "VLAN3310",
+      "tags": [],
+      "vid": 3310
+    },
+    "VLAN3311": {
+      "description": "VLAN3311",
+      "l2vpn_identifier": 303311,
+      "name": "VLAN3311",
+      "tags": [],
+      "vid": 3311
+    },
+    "VLAN3312": {
+      "description": "VLAN3312",
+      "l2vpn_identifier": 303312,
+      "name": "VLAN3312",
+      "tags": [],
+      "vid": 3312
+    },
+    "VLAN3313": {
+      "description": "VLAN3313",
+      "l2vpn_identifier": 303313,
+      "name": "VLAN3313",
+      "tags": [],
+      "vid": 3313
+    },
+    "VLAN3314": {
+      "description": "VLAN3314",
+      "l2vpn_identifier": 303314,
+      "name": "VLAN3314",
+      "tags": [],
+      "vid": 3314
+    },
+    "VLAN3315": {
+      "description": "VLAN3315",
+      "l2vpn_identifier": 303315,
+      "name": "VLAN3315",
+      "tags": [],
+      "vid": 3315
+    },
+    "VLAN3316": {
+      "description": "VLAN3316",
+      "l2vpn_identifier": 303316,
+      "name": "VLAN3316",
+      "tags": [],
+      "vid": 3316
+    },
+    "VLAN3317": {
+      "description": "VLAN3317",
+      "l2vpn_identifier": 303317,
+      "name": "VLAN3317",
+      "tags": [],
+      "vid": 3317
+    },
+    "VLAN3318": {
+      "description": "VLAN3318",
+      "l2vpn_identifier": 303318,
+      "name": "VLAN3318",
+      "tags": [],
+      "vid": 3318
+    },
+    "VLAN3343": {
+      "description": "VLAN3343",
+      "l2vpn_identifier": 303343,
+      "name": "VLAN3343",
+      "tags": [],
+      "vid": 3343
+    },
+    "VLAN3344": {
+      "description": "VLAN3344",
+      "l2vpn_identifier": 303344,
+      "name": "VLAN3344",
+      "tags": [],
+      "vid": 3344
+    },
+    "VLAN3399": {
+      "description": "VLAN3399",
+      "l2vpn_identifier": 303399,
+      "name": "VLAN3399",
+      "tags": [
+        "IGMP-SNOOPING"
+      ],
+      "vid": 3399
+    },
+    "VLAN350": {
+      "description": "VLAN350: multicast-internal",
+      "l2vpn_identifier": 300350,
+      "name": "VLAN350",
+      "tags": [
+        "IGMP-SNOOPING"
+      ],
+      "vid": 350
+    },
+    "VLAN391": {
+      "description": "VendorA-packager-main",
+      "l2vpn_identifier": 300391,
+      "name": "VLAN391",
+      "tags": [],
+      "vid": 391
+    },
+    "VLAN397": {
+      "description": "GVIDI MCAST DMZ",
+      "l2vpn_identifier": 300397,
+      "name": "VLAN397",
+      "tags": [],
+      "vid": 397
+    },
+    "VLAN399": {
+      "description": "Multicast Bluesky",
+      "l2vpn_identifier": null,
+      "name": "VLAN399",
+      "tags": [
+        "IGMP-SNOOPING"
+      ],
+      "vid": 399
+    },
+    "VLAN751": {
+      "description": "MAIN - Multicast",
+      "l2vpn_identifier": null,
+      "name": "VLAN751",
+      "tags": [],
+      "vid": 751
+    },
+    "VLAN901": {
+      "description": "p2p-core01-a-mcast-610-11-ams1-core02-b-mcast-607-18-ams1-VR-Multicast-external",
+      "l2vpn_identifier": null,
+      "name": "VLAN901",
+      "tags": [],
+      "vid": 901
+    },
+    "VLAN902": {
+      "description": "p2p:core01-mcast-hmg9-demarc-qfx-01",
+      "l2vpn_identifier": null,
+      "name": "VLAN902",
+      "tags": [],
+      "vid": 902
+    },
+    "VLAN906": {
+      "description": "p2p:core01-mcast-20MMON001",
+      "l2vpn_identifier": null,
+      "name": "VLAN906",
+      "tags": [],
+      "vid": 906
+    },
+    "VLAN999": {
+      "description": "HA-fw01-ams1",
+      "l2vpn_identifier": null,
+      "name": "VLAN999",
+      "tags": [],
+      "vid": 999
+    }
+  },
+  "vrfs": {
+    "SGBC": {
+      "custom_fields": {
+        "OSPF_EXPORT": null,
+        "VNI": {
+          "export_policy": "POL_VRF-REDIST",
+          "identifier": 40001
+        }
+      },
+      "export_targets": [
+        "65000:4"
+      ],
+      "import_targets": [
+        "65000:4"
+      ],
+      "name": "SGBC",
+      "rd": "4"
+    },
+    "mgmt_junos": {
+      "custom_fields": {
+        "OSPF_EXPORT": null,
+        "VNI": null
+      },
+      "export_targets": [],
+      "import_targets": [],
+      "name": "mgmt_junos",
+      "rd": null
+    },
+    "multicast-external": {
+      "custom_fields": {
+        "OSPF_EXPORT": "POL_STATIC_TO_OSPF",
+        "VNI": null
+      },
+      "export_targets": [
+        "65000:1000"
+      ],
+      "import_targets": [
+        "65000:1000"
+      ],
+      "name": "multicast-external",
+      "rd": "1000"
+    },
+    "multicast-internal": {
+      "custom_fields": {
+        "OSPF_EXPORT": null,
+        "VNI": null
+      },
+      "export_targets": [
+        "65000:1001"
+      ],
+      "import_targets": [
+        "65000:1001"
+      ],
+      "name": "multicast-internal",
+      "rd": "1001"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+
+{# loop through interfaces and configure IGMP on the correct ones #}
+{% for interface in device_interfaces %}
+    {% if interface.enabled == true %}
+        {% if interface.cf.IGMPIFACEDISABLE == True %}
+set protocols igmp interface {{ interface.name }} disable
+        {% endif %}
+        {% if interface.cf.IGMPIFACEVERSION != None %}
+set protocols igmp interface {{ interface.name }} version {{ interface.cf.IGMPIFACEVERSION }}
+        {% endif %}
+    {% endif %}
+{% endfor %}

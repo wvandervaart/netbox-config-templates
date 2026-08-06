@@ -1,0 +1,14 @@
+{% for interface in device_interfaces %}
+    {% if interface.enabled == false %}
+        {% if interface.connected_endpoints is defined and interface.connected_endpoints | length > 0  %}
+            {% set description = "to-" + interface.connected_endpoints[0].device.name + "-" + interface.connected_endpoints[0].name %}
+        {% else %}
+            {% set description = "disabled" %}
+        {% endif %}
+interface {{ interface.name }}
+   description {{ description }}
+   shutdown
+!
+    {% endif %}
+{% endfor %}
+

@@ -1,0 +1,21 @@
+
+ip routing
+{% set ns = namespace(enabled_vrfs=[],interface=None) %}
+{% for interface in device_interfaces %}
+    {% if interface.vrf.id is defined %}
+        {% if interface.enabled == true %}
+            {% if interface.vrf not in ns.enabled_vrfs %}
+                {% set _ = ns.enabled_vrfs.append(interface.vrf) %}
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+{% for vrf in ns.enabled_vrfs %}
+vrf instance {{ vrf.name }}
+    {% if vrf.description != "" %}
+   description {{ vrf.description }}
+    {% endif %}
+!
+ip routing vrf {{ vrf.name }}
+ipv6 unicast-routing vrf {{ vrf.name }}
+{% endfor %}

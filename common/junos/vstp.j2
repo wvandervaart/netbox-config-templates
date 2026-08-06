@@ -1,0 +1,19 @@
+
+{# VSTP config #}
+{% if device.cf.VSTP_ENABLED is defined and device.cf.VSTP_ENABLED == True %}
+    {% if device.cf.VSTP_BRIDGEID is defined and device.cf.VSTP_BRIDGEID != None %}
+set groups APPLY-GROUP-VSTP protocols vstp vlan <*> system-identifier {{ device.cf.VSTP_BRIDGEID }}
+    {% endif %}
+    {% if device.cf.VSTP_BRIDGEPRIO is defined and device.cf.VSTP_BRIDGEPRIO != None %}
+set groups APPLY-GROUP-VSTP protocols vstp vlan <*> bridge-priority {{ device.cf.VSTP_BRIDGEPRIO }}
+set protocols vstp apply-groups APPLY-GROUP-VSTP
+    {% endif %}
+    {% if device.cf.VSTP_ALL_INT_ENABLED is defined and device.cf.VSTP_ALL_INT_ENABLED == True %}
+set protocols vstp interface all
+    {% endif %}
+    {% for interface in device_interfaces %}
+        {% if interface.enabled == true and interface.cf.get('VSTP_OFF') %}
+set protocols vstp interface {{ interface.name }} disable
+        {% endif %}
+    {% endfor %}
+{% endif %}

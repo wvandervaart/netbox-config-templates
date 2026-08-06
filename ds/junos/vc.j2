@@ -1,0 +1,11 @@
+{% set ns = namespace() %}
+{% set ns.count = 0 %}
+{% if (device.virtual_chassis is defined and device.virtual_chassis != None ) %}
+set virtual-chassis preprovisioned
+set virtual-chassis no-split-detection
+    {% for member in device.virtual_chassis.members.all() %}
+set virtual-chassis member {{ ns.count }} role routing-engine
+set virtual-chassis member {{ ns.count }} serial-number {{ member.serial }}
+        {% set ns.count = ns.count + 1 %}
+    {% endfor %}
+{% endif %}

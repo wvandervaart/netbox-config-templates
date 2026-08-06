@@ -1,0 +1,16 @@
+{% if hash_key is defined and "ACX7100" in device.device_type.model %}
+delete forwarding-options hash-key
+    {% for family in hash_key.family %}
+        {% for hashs_key in hash_key.family[family] %}
+set forwarding-options hash-key family {{ family }} {{ hashs_key }}
+        {% endfor %}
+    {% endfor %}
+{% endif %}
+{% if enhanced_hash_key is defined and ( "QFX" in device.device_type.model ) %}
+delete forwarding-options enhanced-hash-key
+    {% for family in enhanced_hash_key.family %}
+        {% for hash_key in enhanced_hash_key.family[family] %}
+set forwarding-options enhanced-hash-key {{ family }} {{ hash_key }}
+        {% endfor %}
+    {% endfor %}
+{% endif %}

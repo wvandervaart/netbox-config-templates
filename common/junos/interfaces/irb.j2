@@ -1,0 +1,51 @@
+{% set ns = namespace(virt_gw={}) %}
+{% set interface_ids = [] %}
+{% for interface in device_interfaces %}
+    {% if 'irb' in interface.name %}
+        {% if not interface.enabled %}
+set interfaces {{ interface.name | replace(".", " unit ") }} disable
+        {% endif %}
+        {# -- Collect virtual gateway from VRRP / anycast IPs --------------- #}
+        {% set ns.virt_gw = {} %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% if ip.role == 'vrrp' %}
+                {% set is_primary = ip.cf.get('PRIMARY') %}
+                {% set prio = "250" if is_primary else "200" %}
+                {% set vrrpgroup = ip.cf.VRRP_GROUP if (ip.cf.VRRP_GROUP is defined and ip.cf.VRRP_GROUP != None) else 1 %}
+                {% set _ = ns.virt_gw.update({"vrrp-group": vrrpgroup}) %}
+                {% set _ = ns.virt_gw.update({"virtual-address": ip.address.ip}) %}
+                {% set _ = ns.virt_gw.update({"priority": prio}) %}
+                {% set _ = ns.virt_gw.update({"vrrp": True}) %}
+            {% elif ip.role == 'anycast' %}
+                {% set _ = ns.virt_gw.update({"virtual-gateway-address": ip.address.ip}) %}
+                {% set _ = ns.virt_gw.update({"anycast": True}) %}
+            {% endif %}
+        {% endfor %}
+        {# -- Per-IP output -------------------------------------------------- #}
+        {% set iface = interface.name | replace(".", " unit ") %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% set family = 'inet' if ip.family == 4 else 'inet6' %}
+            {% if interface.id not in interface_ids %}
+                {% set vrfname = interface.vrf.name if interface.vrf.name is defined else "global" %}
+set interfaces {{ iface }} description "L3:{{ interface.untagged_vlan.name }} :: vrf:{{ vrfname }}"
+                {% set _ = interface_ids.append(interface.id) %}
+            {% endif %}
+            {% if ip.role != 'vrrp' and ip.role != 'anycast' %}
+set interfaces {{ iface }} virtual-gateway-accept-data
+set interfaces {{ iface }} family {{ family }} address {{ ip.address }}
+                {% if ns.virt_gw['vrrp'] == True %}
+set interfaces {{ iface }} family {{ family }} address {{ ip.address }} vrrp-group {{ ns.virt_gw['vrrp-group'] }} virtual-address {{ ns.virt_gw['virtual-address'] }}
+set interfaces {{ iface }} family {{ family }} address {{ ip.address }} vrrp-group {{ ns.virt_gw['vrrp-group'] }} priority {{ ns.virt_gw['priority'] }}
+set interfaces {{ iface }} family {{ family }} address {{ ip.address }} vrrp-group {{ ns.virt_gw['vrrp-group'] }} accept-data
+                {% endif %}
+                {% if ns.virt_gw['anycast'] == True %}
+set interfaces {{ iface }} family {{ family }} address {{ ip.address }} virtual-gateway-address {{ ns.virt_gw['virtual-gateway-address'] }}
+                {% endif %}
+                {% if interface.mtu %}
+set interfaces {{ iface }} family {{ family }} mtu {{ interface.mtu }}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% set ns.virt_gw = "" %}
+{% endfor %}

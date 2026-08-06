@@ -1,0 +1,7 @@
+
+{# custom arp for IX interfaces #}
+{% for interface in device_interfaces %}
+    {% if interface.cf.get('IXPORT') %}
+set system arp interfaces {{ interface.name }} aging-timer 240
+    {% endif %}
+{% endfor %}

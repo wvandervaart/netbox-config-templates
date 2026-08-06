@@ -1,0 +1,75 @@
+
+{# -- Collect policies from BGP sessions ------------------------------------ #}
+{% set pols = [] %}
+{% set pls  = [] %}
+{% for peer in bgp_sessions %}
+    {% set policy_sets = [peer.import_policies.all(), peer.peer_group.import_policies.all(), peer.export_policies.all(), peer.peer_group.export_policies.all()] %}
+    {% for policy_set in policy_sets %}
+        {% for policy in policy_set %}
+            {% if policy not in pols %}
+                {% set _ = pols.append(policy) %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+{# VRF VNI export policies are intentionally NOT collected here: that field feeds
+   junos's `protocols evpn ip-prefix-routes export` (common/junos/routing-instance.j2),
+   which has no EOS equivalent - VRFs shared with the junos fabric (e.g. "internet")
+   would otherwise leak an orphaned, unreferenced prefix-list into EOS configs. #}
+{# All RoutingPolicy objects by name, fetched once instead of one .get() per
+   match_custom "policy" reference below #}
+{% set all_policies_by_name = {} %}
+{% for rp in netbox_bgp.RoutingPolicy.objects.all() %}
+    {% set _ = all_policies_by_name.setdefault(rp.name, rp) %}
+{% endfor %}
+{# -- Discover prefix-lists referenced by policy rules (no queries yet) ------ #}
+{% set pl_family = {} %}
+{% macro register_pl(pl, family) %}
+    {% if pl not in pls %}
+        {% set _ = pls.append(pl) %}
+        {% set _ = pl_family.update({pl.id: family}) %}
+    {% endif %}
+{% endmacro %}
+{% for poli in pols %}
+    {% for rule in poli.rules.all() %}
+{# Side-effect: add linked routing policies discovered via match_custom #}
+        {% if rule.match_custom is defined and rule.match_custom is iterable %}
+            {% for mc in rule.match_custom %}
+                {% if mc.name is defined and mc.name == "policy" %}
+                    {% set linked = all_policies_by_name.get(mc.value) %}
+                    {% if linked not in pols %}
+                        {% set _ = pols.append(linked) %}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+{# IPv4 prefix-lists #}
+        {% if rule.match_ip_address is defined and rule.match_ip_address.all() is iterable %}
+            {% for pl in rule.match_ip_address.all() %}{{ register_pl(pl, "ip") }}{% endfor %}
+        {% endif %}
+{# IPv6 prefix-lists #}
+        {% if rule.match_ipv6_address is defined and rule.match_ipv6_address.all() is iterable %}
+            {% for pl in rule.match_ipv6_address.all() %}{{ register_pl(pl, "ipv6") }}{% endfor %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{# -- Render, one batched PrefixListRule query for every list discovered above,
+   instead of one query per distinct prefix-list #}
+{% set pl_rules = {} %}
+{% for plr in netbox_bgp.PrefixListRule.objects.filter(prefix_list__in=pls) %}
+    {% set _ = pl_rules.setdefault(plr.prefix_list.id, []).append(plr) %}
+{% endfor %}
+{% for pl in pls %}
+{{ pl_family[pl.id] }} prefix-list {{ pl.name }}
+    {% for plr in pl_rules.get(pl.id, []) %}
+        {% set spec = "" %}
+        {% if plr.le is integer %}
+            {% set spec = spec + " le " + plr.le | string %}
+        {% endif %}
+        {% if plr.ge is integer %}
+            {% set spec = spec + " ge " + plr.ge | string %}
+        {% endif %}
+   seq {{ plr.index + 1 }} permit {{ plr.prefix_custom }}{{ spec }}
+    {% endfor %}
+!
+{% endfor %}

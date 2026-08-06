@@ -1,0 +1,92 @@
+{% set interface_ids = [] %}
+{% set ns = namespace(virt_gw={}) %}
+{% set excluded = ['irb', 'mgmt', 'vme', 'em0', 'em1', 'lo'] %}
+{#  #}
+{% for interface in device_interfaces %}
+    {% set is_fabric = interface.cf.get('FABRIC') %}
+    {% set skip = not interface.enabled
+                  or is_fabric
+                  or excluded | select('in', interface.name) | list | length > 0 %}
+    {% if not skip %}
+        {# -- VRRP virtual gateway ------------------------------------------- #}
+        {% set ns.virt_gw = {} %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% if ip.role == 'vrrp' %}
+                {% set is_primary = ip.cf.get('PRIMARY') %}
+                {% set prio = "250" if is_primary else "200" %}
+                {% set vrrpgroup = ip.cf.VRRP_GROUP if (ip.cf.VRRP_GROUP is defined and ip.cf.VRRP_GROUP != None) else 1 %}
+                {% set _ = ns.virt_gw.update({"vrrp-group": vrrpgroup}) %}
+                {% set _ = ns.virt_gw.update({"virtual-address": ip.address.ip}) %}
+                {% set _ = ns.virt_gw.update({"priority": prio}) %}
+            {% endif %}
+        {% endfor %}
+        {# -- Parse name / unit tag ------------------------------------------ #}
+        {% if '.' in interface.name %}
+            {% set parts = interface.name.split('.') %}
+            {% set name = parts[0] %}
+            {% set tag  = parts[1] %}
+        {% else %}
+            {% set name = interface.name %}
+            {% set tag  = '0' %}
+        {% endif %}
+        {# -- Build description (once per interface) ------------------------- #}
+        {% if interface.id not in interface_ids %}
+            {% set ep = interface.connected_endpoints[0] if interface.connected_endpoints else None %}
+            {% if ep %}
+                {% set ep_label = (ep.device.name ~ "-" ~ ep.name) if ep.device is defined else ep.name %}
+                {% set description = (interface.description ~ " :: " ~ ep_label) if interface.description else ep_label %}
+            {% else %}
+                {% set description = interface.description %}
+            {% endif %}
+            {% if interface.link_peers and interface.link_peers[0].cable is defined
+                  and interface.link_peers[0].cable.label %}
+                {% set description = description ~ " :: " ~ interface.link_peers[0].cable.label %}
+            {% endif %}
+            {#  #}
+            {% set _ = interface_ids.append(interface.id) %}
+            {#  #}
+        {% endif %}
+        {# -- Per-IP address lines ------------------------------------------- #}
+        {% set vlanid = (' vlan-id ' ~ tag) if tag != '0' else '' %}
+        {% if interface.mtu is defined and interface.mtu != None %}
+            {% if tag != '0' %}
+                {% set intmtu = interface.mtu %}
+            {% elif device.role.slug == 'distribution-switch' %}
+                {% set intmtu = interface.mtu - 14 %}
+            {% else %}
+                {% set intmtu = interface.mtu - 22 %}
+            {% endif %}
+        {% endif %}
+        {#  #}
+        {% for ip in interface.ip_addresses.all() %}
+            {% if interface.mtu and tag == '0' %}
+set interfaces {{ name }} mtu {{ interface.mtu }}
+            {% endif %}
+set interfaces {{ name }} unit {{ tag }} description "{{ description }}"
+            {% if ip.role != 'vrrp' %}
+                {% set family = 'inet' if ip.family == 4 else 'inet6' %}
+                {% if interface.mtu is defined and interface.mtu != None %}
+set interfaces {{ name }} unit {{ tag }}{{ vlanid }} family {{ family }} mtu {{ intmtu }}
+                {% endif %}
+set interfaces {{ name }} unit {{ tag }}{{ vlanid }} family {{ family }} address {{ ip.address }}
+                {% if ns.virt_gw | length > 1 %}
+set interfaces {{ name }} unit {{ tag }}{{ vlanid }} family {{ family }} address {{ ip.address }} vrrp-group {{ ns.virt_gw['vrrp-group'] }} virtual-address {{ ns.virt_gw['virtual-address'] }}
+set interfaces {{ name }} unit {{ tag }}{{ vlanid }} family {{ family }} address {{ ip.address }} vrrp-group {{ ns.virt_gw['vrrp-group'] }} priority {{ ns.virt_gw['priority'] }}
+set interfaces {{ name }} unit {{ tag }}{{ vlanid }} family {{ family }} address {{ ip.address }} vrrp-group {{ ns.virt_gw['vrrp-group'] }} accept-data
+                {% endif %}
+                {% set input_filter = interface.cf.get('INPUT_FILTER') %}
+                {% if input_filter %}
+set interfaces {{ name }} unit {{ tag }} family inet filter input {{ input_filter }}
+                {% endif %}
+                {% set output_filter = interface.cf.get('OUTPUT_FILTER') %}
+                {% if output_filter %}
+set interfaces {{ name }} unit {{ tag }} family inet filter output {{ output_filter }}
+                {% endif %}
+                {% if interface.cf.get('IXPORT') %}
+set interfaces {{ name }} unit {{ tag }} family inet policer arp ARP-POLICER
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% set ns.virt_gw = "" %}
+{% endfor %}

@@ -1,0 +1,88 @@
+{# -- Macros ----------------------------------------------------- #}
+{%- macro build_description(interface) %}
+    {%- set ep = interface.connected_endpoints[0] if interface.connected_endpoints else None %}
+    {%- if ep %}
+        {%- set ep_label = (ep.device.name ~ "-" ~ ep.name) if ep.device is defined else ep.name %}
+        {%- set desc = (interface.description ~ " :: " ~ ep_label) if interface.description else ep_label %}
+    {%- else %}
+        {%- set desc = interface.description %}
+    {%- endif %}
+    {%- if interface.link_peers and interface.link_peers[0].cable is defined and interface.link_peers[0].cable.label %}
+        {%- set desc = desc ~ " :: " ~ interface.link_peers[0].cable.label %}
+    {%- endif %}
+    {{- desc }}
+{%- endmacro %}
+{# edge-router runs MX/ACX hardware and uses ether-options for FEC; every
+   other role here runs QFX hardware, which uses gigether-options #}
+{% set fec_options = "ether-options" if device.role.name == "edge-router" else "gigether-options" %}
+{# edge-router binds its EVPN-VXLAN L2 domain to access/tagged ports via
+   loopback0's vtep tag. Other roles don't set loopback0 at all, so vtep is
+   always False for them and this is a no-op. #}
+{% set vtep = loopback0.cf.get('VTEP') if loopback0 is defined else False %}
+{% set children_by_parent = {} %}
+{% for iface in device_interfaces %}
+    {% if iface.parent %}
+        {% set _ = children_by_parent.setdefault(iface.parent.id, []).append(iface) %}
+    {% endif %}
+{% endfor %}
+{% for interface in device_interfaces %}
+    {% if 'irb' not in interface.name and 'ae' not in interface.name and 'lo' not in interface.name %}
+        {% set description = build_description(interface) | trim %}
+        {% set has_mtu     = interface.mtu | int > 0 %}
+        {% set in_filter   = interface.cf.get('INPUT_FILTER') %}
+        {% set out_filter  = interface.cf.get('OUTPUT_FILTER') %}
+        {% set is_maintenance = "maintenance" in interface.tags.names() %}
+        {% set description = ((description ~ " :: MAINT") if description else "MAINT") if is_maintenance else description %}
+        {% if interface.enabled %}
+            {% for fec_mode in interface.cf.get('FEC') or [] %}
+set interfaces {{ interface.name }} {{ fec_options }} fec {{ fec_mode }}
+            {% endfor %}
+            {# -- Access mode ------------------------------------------------ #}
+            {% if interface.mode == "access" and interface.untagged_vlan.id is defined and has_mtu %}
+                {% set access_vlan = (maintenance_vlan.name if maintenance_vlan else "VLAN900") if is_maintenance else interface.untagged_vlan.name %}
+                {% if vtep %}
+set routing-instances LAYER2 interface {{ interface.name }}.0
+                {% endif %}
+set interfaces {{ interface.name }} description "{{ description }} :: {{ access_vlan }}"
+set interfaces {{ interface.name }} mtu {{ interface.mtu }}
+set interfaces {{ interface.name }} unit 0 family ethernet-switching interface-mode access vlan members {{ access_vlan }}
+            {# -- Trunk mode ------------------------------------------------- #}
+            {% elif interface.mode == "tagged" and interface.tagged_vlans is defined and has_mtu %}
+                {% set tagged_vlan = [maintenance_vlan.name if maintenance_vlan else "VLAN900"] if is_maintenance else interface.tagged_vlans.all() | map(attribute='name') | list %}
+                {% if vtep %}
+set routing-instances LAYER2 interface {{ interface.name }}.0
+                {% endif %}
+set interfaces {{ interface.name }} description "{{ description }}"
+set interfaces {{ interface.name }} mtu {{ interface.mtu }}
+                {% if interface.untagged_vlan.id is defined and interface.untagged_vlan.id != 0 %}
+set interfaces {{ interface.name }} native-vlan-id {{ interface.untagged_vlan.vid }}
+                {% endif %}
+set interfaces {{ interface.name }} unit 0 family ethernet-switching interface-mode trunk vlan members [{{ tagged_vlan | join(" ") }}]
+            {# -- Parent (flexible-vlan-tagging) ----------------------------- #}
+            {% elif children_by_parent.get(interface.id, []) and has_mtu %}
+set interfaces {{ interface.name }} description "{{ description }}"
+set interfaces {{ interface.name }} flexible-vlan-tagging
+set interfaces {{ interface.name }} native-vlan-id 1
+set interfaces {{ interface.name }} mtu {{ interface.mtu }}
+                {% if interface.mac_address %}
+set interfaces {{ interface.name }} mac {{ interface.mac_address }}
+                {% endif %}
+            {% endif %}
+            {# -- Filters (all enabled modes) -------------------------------- #}
+            {% set parts = interface.name.split('.') %}
+            {% set name  = parts[0] %}
+            {% set tag   = parts[1] if parts | length > 1 else '0' %}
+            {% if in_filter and (interface.mode == "tagged" or interface.mode == "access") %}
+set interfaces {{ name }} unit {{ tag }} family ethernet-switching filter input {{ in_filter }}
+            {% endif %}
+            {% if out_filter and (interface.mode == "tagged" or interface.mode == "access") %}
+set interfaces {{ name }} unit {{ tag }} family ethernet-switching filter output {{ out_filter }}
+            {% endif %}
+        {% else %}
+            {# -- Disabled interface ----------------------------------------- #}
+            {% set description = (description ~ " :: DISABLED") if description else "DISABLED" %}
+set interfaces {{ interface.name }} description "{{ description }}"
+set interfaces {{ interface.name }} disable
+        {% endif %}
+    {% endif %}
+{% endfor %}

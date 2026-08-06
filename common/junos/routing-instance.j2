@@ -1,0 +1,72 @@
+
+{# -- Helpers ---------------------------------------------------------------- #}
+{% set ns = namespace(enabled_vrfs=[], lo=None) %}
+{% set is_fabric = "fabric" in device.tags.names() %}
+{% set is_edge = True if device.role.name == "edge-router" else False %}
+{% set is_leaf = True if device.role.name == "leaf" else False %}
+{% set is_ds = True if device.config_template.name == "junos-ds-config" else False %}
+{# -- Collect enabled VRFs, and group interfaces by VRF ----------------------- #}
+{% set interfaces_by_vrf = {} %}
+{% for interface in device_interfaces %}
+    {% if interface.vrf.id is defined %}
+        {% set _ = interfaces_by_vrf.setdefault(interface.vrf.id, []).append(interface) %}
+    {% endif %}
+    {% if interface.enabled and interface.vrf.id is defined and interface.vrf not in ns.enabled_vrfs %}
+        {% set _ = ns.enabled_vrfs.append(interface.vrf) %}
+    {% endif %}
+{% endfor %}
+{# -- Render VRF config ------------------------------------------------------ #}
+{% for vrf in ns.enabled_vrfs %}
+    {% set vni = vrf.cf.get('VNI') %}
+    {% if vrf.name != "mgmt_junos" and (vni or not is_fabric) %}
+        {% set ri = "routing-instances " ~ vrf.name %}
+        {# Router-ID: prefer VRF lo0, fall back to device primary IP #}
+        {% set ns.lo = None %}
+        {% for iface in interfaces_by_vrf.get(vrf.id, []) %}
+            {% if ns.lo is none and 'lo0' in iface.name %}
+                {% set ns.lo = iface %}
+            {% endif %}
+        {% endfor %}
+        {% set lo = ns.lo %}
+        {% set id = lo.ip_addresses.exclude(role="anycast").first().address.ip if lo else device.primary_ip.address.ip %}
+        {% if is_leaf %}
+            {% set id = device.primary_ip.address.ip %}
+        {% endif %}
+set {{ ri }} instance-type vrf
+set {{ ri }} routing-options router-id {{ id }}
+set {{ ri }} route-distinguisher {{ id }}:{{ vrf.rd }}
+        {% for target in vrf.import_targets.all() %}
+set {{ ri }} vrf-target import target:{{ target.name }}
+        {% endfor %}
+        {% for target in vrf.export_targets.all() %}
+set {{ ri }} vrf-target export target:{{ target.name }}
+        {% endfor %}
+        {% if ( is_edge or is_leaf ) and not is_ds %}
+set {{ ri }} vrf-table-label
+        {% endif %}
+        {% if is_fabric or is_leaf %}
+            {% if is_edge %}
+set {{ ri }} protocols evpn ip-prefix-routes reject-asymmetric-vni
+            {% endif %}
+set {{ ri }} protocols evpn ip-prefix-routes advertise direct-nexthop
+set {{ ri }} protocols evpn ip-prefix-routes vni {{ vni.identifier }}
+set {{ ri }} protocols evpn ip-prefix-routes encapsulation vxlan
+            {% if is_maintenance %}
+set {{ ri }} protocols evpn ip-prefix-routes export POL_REJECT
+            {% else %}
+                {% if is_leaf %}
+set {{ ri }} protocols evpn ip-prefix-routes export POL_VRF-REDIST
+                {% else %}
+set {{ ri }} protocols evpn ip-prefix-routes export {{ vni.cf.EXPORT_POLICY }}
+                {% endif %}
+            {% endif %}
+        {% endif %}
+        {% if 'OSPF_EXPORT' in vrf.cf and vrf.cf.OSPF_EXPORT != None %}
+set {{ ri }} protocols ospf export {{ vrf.cf.OSPF_EXPORT }}
+        {% endif %}
+        {% for interface in interfaces_by_vrf.get(vrf.id, []) %}
+set {{ ri }} interface {{ interface.name }}
+        {% endfor %}
+set {{ ri }} routing-options multipath
+    {% endif %}
+{% endfor %}

@@ -1,0 +1,101 @@
+{% set interface_ids = [] %}
+{% set ns = namespace() %}
+{% set ns.vrf = '' %}
+{% set ns.first = False %}
+{% for interface in device_interfaces %}
+    {% set ns.virt_gws = [] %}
+    {% set is_fabric = interface.cf.get('FABRIC') %}
+    {% if ('irb' not in interface.name) and ('Management' not in interface.name) and ('Lo' not in interface.name) and not is_fabric %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% if ip.role is defined and ip.role == 'vrrp' %}
+                {% set prio = "200" %}
+                {% set is_primary = ip.cf.get('PRIMARY') %}
+                {% if is_primary %}
+                    {% set prio = "250" %}
+                {% endif %}
+                {% set _ = ns.virt_gws.append([ip, prio]) %}
+            {% endif %}
+        {% endfor %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% if '.' in interface.name %}
+                {% set temptag = interface.name.split('.') %}
+                {% set name = temptag[0] %}
+                {% set tag = temptag[1] %}
+            {% else %}
+                {% set tag = '0' %}
+                {% set name = interface.name %}
+            {% endif %}
+            {% if not interface.id in interface_ids %}
+                {% if ( (interface.connected_endpoints is defined ) and (interface.connected_endpoints != [] ) and interface.connected_endpoints[0].device is defined ) %}
+                    {% if interface.description != "" %}
+                        {% set description = interface.description + " :: " + interface.connected_endpoints[0].device.name + "-" + interface.connected_endpoints[0].name %}
+                    {% else %}
+                        {% set description = interface.connected_endpoints[0].device.name + "-" + interface.connected_endpoints[0].name %}
+                    {% endif %}
+                {% elif ( (interface.connected_endpoints is defined ) and (interface.connected_endpoints != [] ) and interface.connected_endpoints[0].name is defined ) %}
+                    {% if interface.description != "" %}
+                        {% set description = interface.description + " :: " + interface.connected_endpoints[0].name %}
+                    {% else %}
+                        {% set description = interface.connected_endpoints[0].name %}
+                    {% endif %}
+                {% else %}
+                    {% set description = interface.description %}
+                {% endif %}
+                {% if interface.link_peers is defined and interface.link_peers != [] and interface.link_peers[0].cable is defined and interface.link_peers[0].cable.label != "" %}
+                    {% set description = description + " :: " + interface.link_peers[0].cable.label %}
+                {% endif %}
+                {% if tag == "0" %}
+interface {{ name }}
+                {% else %}
+interface {{ name }}.{{ tag }}
+   encapsulation dot1q vlan {{ tag }}
+                {% endif %}
+                {% if interface.type != "virtual" %}
+   no switchport
+                {% endif %}
+                {% if interface.enabled != true %}
+   shutdown
+                {% endif %}
+                {% if description != "" %}
+   description {{ description }}
+                {% endif %}
+                {% set tmp = interface_ids.append(interface.id) %}
+            {% endif %}
+            {% if ns.vrf == '' and interface.vrf != None %}
+   vrf {{ interface.vrf.name }}
+                {% set ns.vrf = interface.vrf.name %}
+            {% endif %}
+            {% if not (ip.role is defined and ip.role == 'vrrp') %}
+                {% if ip.family == 4 %}
+                    {% set family = '' %}
+                {% else %}
+                    {% set family = 'v6' %}
+                {% endif %}
+                {% if ns.first == False %}
+                    {% set sec = '' %}
+                    {% set ns.first = True %}
+                {% else %}
+                    {% set sec = ' secondary' %}
+                {% endif %}
+   ip{{ family }} address {{ ip }}{{ sec }}
+            {% endif %}
+        {% endfor %}
+        {% if ns.virt_gws != "" %}
+            {% for gw in ns.virt_gws %}
+                {% if gw[0].cf.VRRP_GROUP is defined and gw[0].cf.VRRP_GROUP != None %}
+                    {% set vrrpgroup = gw[0].cf.VRRP_GROUP %}
+                {% else %}
+                    {% set vrrpgroup = 1 %}
+                {% endif %}
+   vrrp {{ vrrpgroup }} ipv{{ gw[0].family }} {{ gw[0].address.ip }}
+   vrrp {{ vrrpgroup }} priority-level {{ gw[1] }}
+            {% endfor %}
+        {% endif %}
+        {% if ns.first == True %}
+!
+        {% endif %}
+    {% endif %}
+    {% set ns.virt_gw = "" %}
+    {% set ns.first = False %}
+    {% set ns.vrf = '' %}
+{% endfor %}

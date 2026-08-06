@@ -1,0 +1,80 @@
+{% set pls = [] %}
+{% set pols = [] %}
+{% set ns = namespace(enabled_vrfs=[]) %}
+{# Collect all import/export policies from BGP sessions + their peer groups #}
+{% for peer in bgp_sessions %}
+    {% for policy in peer.import_policies.all() %}
+        {% if policy not in pols %}
+            {% set _ = pols.append(policy) %}
+        {% endif %}
+    {% endfor %}
+    {% for policy in peer.peer_group.import_policies.all() %}
+        {% if policy not in pols %}
+            {% set _ = pols.append(policy) %}
+        {% endif %}
+    {% endfor %}
+    {% for policy in peer.export_policies.all() %}
+        {% if policy not in pols %}
+            {% set _ = pols.append(policy) %}
+        {% endif %}
+    {% endfor %}
+    {% for policy in peer.peer_group.export_policies.all() %}
+        {% if policy not in pols %}
+            {% set _ = pols.append(policy) %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{# select enabled vrfs so we can select policies #}
+{% for interface in device_interfaces %}
+    {% if interface.enabled and interface.vrf.id is defined and interface.vrf not in ns.enabled_vrfs %}
+        {% set _ = ns.enabled_vrfs.append(interface.vrf) %}
+    {% endif %}
+{% endfor %}
+{% for vrf in ns.enabled_vrfs %}
+    {% set vni = vrf.cf.get('VNI') %}
+    {% if vni and vni.cf.EXPORT_POLICY is defined and vni.cf.EXPORT_POLICY not in pols %}
+        {% set _ = pols.append(vni.cf.EXPORT_POLICY) %}
+    {% endif %}
+{% endfor %}
+{# All RoutingPolicy objects by name, fetched once instead of one .get() per
+   match_custom "policy" reference below #}
+{% set all_policies_by_name = {} %}
+{% for rp in netbox_bgp.RoutingPolicy.objects.all() %}
+    {% set _ = all_policies_by_name.setdefault(rp.name, rp) %}
+{% endfor %}
+{# the good stuff — NOTE: pols grows during this loop (linked route-policies get
+   appended below), which is intentional so they get resolved too. Watch out for
+   circular policy references causing an infinite loop if that's ever possible. #}
+{% for poli in pols %}
+    {% for policy in poli.rules.all() %}
+        {% if policy.match_custom is defined and policy.match_custom is iterable %}
+            {% for pol in policy.match_custom %}
+                {% if pol["name"] is defined and pol["name"] == "policy" %}
+                    {# add linked route-policy #}
+                    {% set linked = all_policies_by_name.get(pol["value"]) %}
+                    {% if linked not in pols %}
+                        {% set _ = pols.append(linked) %}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {% if policy.match_aspath_list is defined and policy.match_aspath_list.all() is iterable %}
+            {% for pl in policy.match_aspath_list.all() %}
+                {% if pl not in pls %}
+                    {% set _ = pls.append(pl) %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{# One batched ASPathListRule query for every as-path list discovered above,
+   instead of one query per distinct list #}
+{% set pl_rules = {} %}
+{% for plr in netbox_bgp.ASPathListRule.objects.filter(aspath_list__in=pls) %}
+    {% set _ = pl_rules.setdefault(plr.aspath_list.id, []).append(plr) %}
+{% endfor %}
+{% for pl in pls %}
+    {% for plr in pl_rules.get(pl.id, []) %}
+set policy-options as-path-group {{ pl.name }} as-path {{ plr.description }} {{ plr.pattern }}
+    {% endfor %}
+{% endfor %}

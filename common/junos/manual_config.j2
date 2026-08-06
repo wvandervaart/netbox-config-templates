@@ -1,0 +1,10 @@
+{% if group_config is defined %}
+    {% for line in group_config %}
+{{ line }}
+    {% endfor %}
+{% endif %}
+{% if manual_config is defined %}
+    {% for line in manual_config %}
+{{ line }}
+    {% endfor %}
+{% endif %}

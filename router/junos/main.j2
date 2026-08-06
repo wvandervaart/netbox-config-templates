@@ -1,0 +1,69 @@
+{# fetched once and reused by every include below - avoids re-querying + N+1 lookups per partial #}
+{% set device_interfaces = device.interfaces.all().select_related('vrf', 'untagged_vlan', 'lag', 'parent').prefetch_related('tagged_vlans', 'tags', 'ip_addresses', '_path', 'cable__terminations') | list %}
+{# lo0.0 is looked up by several vtep/overlay partials below - resolve once instead of re-querying per partial #}
+{% set loopback0 = device_interfaces | selectattr('name', 'equalto', 'lo0.0') | first %}
+{# vtep flag for loopback0 - kept in sync with the identical copies that used to live in
+   router/junos/vlan.j2 and overlay/{switch_options,routing-instance,evpn}.j2, now hoisted here #}
+{% set vtep = loopback0.cf.get('VTEP') if loopback0 is defined else False %}
+{# device-scope maintenance flag - kept in sync with the identical copies in the other 3 junos mains #}
+{% set is_maintenance = "maintenance" in device.tags.names() %}
+{# site-scoped maintenance VLAN - kept in sync with the identical copies in the other 4 junos mains #}
+{% set maintenance_vlan = ipam.VLAN.objects.filter(site=device.site, tags__name='maintenance').first() %}
+{% include 'router/junos/delete.j2' %}
+{% include 'router/junos/system.j2' %}
+{% include 'common/junos/system/system.j2' %}
+{% include 'common/junos/system/ntp.j2' %}
+{% include 'common/junos/system/dns.j2' %}
+{% include 'common/junos/system/syslog-vrf.j2' %}
+{% include 'common/junos/system/arp-ix.j2' %}
+{% include 'common/junos/system/routing-options.j2' %}
+{% include 'common/junos/system/cos.j2' %}
+{% include 'common/junos/system/ddos.j2' %}
+{% include 'common/junos/system/grpc-login-class.j2' %}
+{% include 'common/junos/vstp.j2' %}
+{% include 'common/junos/lldp.j2' %}
+{% include 'common/junos/snmp.j2' %}
+{% include 'common/junos/grpc.j2' %}
+{% include 'router/junos/interfaces/main.j2' %}
+{% include 'router/junos/underlay.j2' %}
+{% include 'router/junos/overlay/main.j2' %}
+{% include 'common/junos/routing-instance.j2' %}
+{% include 'router/junos/overlay/routing-instance.j2' %}
+{% include 'common/junos/static-route.j2' %}
+{# fetched once and reused by every bgp/* include below - avoids re-querying + N+1 lookups per partial.
+   Full junos field set (bgp.j2/aspath-list.j2/policy.j2/prefix-list.j2 all consume this) - kept in
+   sync with the identical copies in spine/junos/main.j2, ds/junos/main.j2, leaf/junos/bgp/main.j2.
+   eos/mgmt roles use a narrower copy since their consumers read fewer relations - see those files. #}
+{% set bgp_sessions = netbox_bgp.BGPSession.objects.filter(device=device).select_related(
+    'local_address__vrf', 'remote_address', 'local_as', 'remote_as', 'peer_group'
+).prefetch_related(
+    'tags',
+    'export_policies__rules__match_ip_address',
+    'export_policies__rules__match_ipv6_address',
+    'export_policies__rules__match_aspath_list',
+    'export_policies__rules__match_community',
+    'import_policies__rules__match_ip_address',
+    'import_policies__rules__match_ipv6_address',
+    'import_policies__rules__match_aspath_list',
+    'import_policies__rules__match_community',
+    'peer_group__export_policies__rules__match_ip_address',
+    'peer_group__export_policies__rules__match_ipv6_address',
+    'peer_group__export_policies__rules__match_aspath_list',
+    'peer_group__export_policies__rules__match_community',
+    'peer_group__import_policies__rules__match_ip_address',
+    'peer_group__import_policies__rules__match_ipv6_address',
+    'peer_group__import_policies__rules__match_aspath_list',
+    'peer_group__import_policies__rules__match_community'
+) | list %}
+{% set bgp_peer_groups = netbox_bgp.BGPPeerGroup.objects.all().prefetch_related('export_policies', 'import_policies') | list %}
+{% include 'common/junos/bgp/aspath-list.j2' %}
+{% include 'common/junos/bgp/policy.j2' %}
+{% include 'common/junos/bgp/prefix-list.j2' %}
+{% include 'common/junos/bgp/community.j2' %}
+{% include 'common/junos/re-protect.j2' %}
+{% include 'common/junos/bgp/bgp.j2' %}
+{% include 'common/junos/ospf/main.j2' %}
+{% include 'common/junos/sflow.j2' %}
+{% include 'router/junos/vlan.j2' %}
+{% include 'common/junos/hash-key.j2' %}
+{% include 'common/junos/manual_config.j2' %}

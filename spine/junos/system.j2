@@ -1,0 +1,4 @@
+delete system
+set system management-instance
+set system ntp source-address {{ device.primary_ip.address.ip }}
+set groups MTU-1500 interfaces <*> unit <*> family inet mtu 1500

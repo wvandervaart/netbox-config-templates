@@ -1,0 +1,25 @@
+{# fetched once and reused by every bgp/* include below - avoids re-querying + N+1 lookups per partial.
+   Narrower than the junos copies: eos has no aspath-list.j2 (no match_aspath_list use) and no
+   template here reads peer.tags, so those paths are dropped. Shared by spine/eos and router/eos
+   (they set eos_bgp_role_partial before including this file) - junos roles need the fuller set,
+   see their main.j2 files. #}
+{% set bgp_sessions = netbox_bgp.BGPSession.objects.filter(device=device).select_related(
+    'local_address__vrf', 'remote_address__vrf', 'local_as', 'remote_as', 'peer_group'
+).prefetch_related(
+    'export_policies__rules__match_ip_address',
+    'export_policies__rules__match_ipv6_address',
+    'export_policies__rules__match_community',
+    'import_policies__rules__match_ip_address',
+    'import_policies__rules__match_ipv6_address',
+    'import_policies__rules__match_community',
+    'peer_group__export_policies__rules__match_ip_address',
+    'peer_group__export_policies__rules__match_ipv6_address',
+    'peer_group__export_policies__rules__match_community',
+    'peer_group__import_policies__rules__match_ip_address',
+    'peer_group__import_policies__rules__match_ipv6_address',
+    'peer_group__import_policies__rules__match_community'
+) | list %}
+{% set bgp_peer_groups = netbox_bgp.BGPPeerGroup.objects.all().prefetch_related('export_policies', 'import_policies') | list %}
+{% include 'common/eos/bgp/prefix-list.j2' %}
+{% include 'common/eos/bgp/policy.j2' %}
+{% include eos_bgp_role_partial %}

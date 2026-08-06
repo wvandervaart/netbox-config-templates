@@ -1,0 +1,62 @@
+
+{# set source-ip variable #}
+set system host-name {{ device.name }}
+{% for user in users.junos %}
+    {% if user.root_auth is defined %}
+set system root-authentication encrypted-password {{ user.root_auth }}
+    {% endif %}
+{% endfor %}
+{% for user in users.exampleorg %}
+    {% for system in user.systems %}
+        {% if system._name is defined and system._name == "junos" %}
+            {% if user.pubkey is defined %}
+set system login user {{ user._name }} class {{ system.class }} authentication {{ user.pubkeytype }} "{{ user.pubkey }}"
+            {% endif %}
+            {% if user.passwd is defined %}
+set system login user {{ user._name }} class {{ system.class }} authentication encrypted-password "{{ user.passwd }}"
+            {% endif %}
+            {% if user.uid is defined %}
+set system login user {{ user._name }} uid {{ user.uid }}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+set system services ssh protocol-version v2 client-alive-count-max 5 client-alive-interval 5
+set system services netconf ssh
+set system time-zone {{ utility.timezone }}
+set system use-imported-time-zones
+set system syslog archive
+set system syslog user * any emergency
+{% for syslog in utility.syslog %}
+set system syslog host {{ syslog._name }} structured-data
+set system syslog host {{ syslog._name }} port {{ syslog.port }} any info
+set system syslog host {{ syslog._name }} match "!((license)|(Minor class: 50 slot: 126)|(Failed to get ifl for ifl)|(devrt_rtsock))"
+set system syslog host {{ syslog._name }} exclude-hostname
+set system syslog host {{ syslog._name }} source-address {{ device.primary_ip.address.ip }}
+{% endfor %}
+set system syslog file messages any notice
+set system syslog file messages authorization info
+set system syslog file messages match "!((license)|(Minor class: 50 slot: 126)|(Failed to get ifl for ifl)|(devrt_rtsock))"
+set system syslog time-format
+set protocols l2-learning global-mac-ip-table-aging-time 600
+set protocols l2-learning global-mac-table-aging-time 1200
+set system arp aging-timer 10
+set system login class READ_ONLY permissions access
+set system login class READ_ONLY permissions admin
+set system login class READ_ONLY permissions firewall
+set system login class READ_ONLY permissions flow-tap
+set system login class READ_ONLY permissions interface
+set system login class READ_ONLY permissions network
+set system login class READ_ONLY permissions routing
+set system login class READ_ONLY permissions secret
+set system login class READ_ONLY permissions security
+set system login class READ_ONLY permissions snmp
+set system login class READ_ONLY permissions storage
+set system login class READ_ONLY permissions system
+set system login class READ_ONLY permissions trace
+set system login class READ_ONLY permissions view
+set system login class READ_ONLY permissions view-configuration
+{# fallback login class #}
+set system login class fallback permissions view
+set system login class fallback allow-commands "exit|op .*|show .*"
+set system login class fallback deny-commands .*

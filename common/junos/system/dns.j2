@@ -1,0 +1,7 @@
+
+{% for ns in utility.dns %}
+    {% if device.primary_ip.assigned_object.vrf != None %}
+set system name-server {{ ns }} routing-instance {{ device.primary_ip.assigned_object.vrf.name }}
+    {% endif %}
+set system name-server {{ ns }} source-address {{ device.primary_ip.address.ip }}
+{% endfor %}

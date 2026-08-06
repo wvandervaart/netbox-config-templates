@@ -1,0 +1,6 @@
+
+{% for syslog in utility.syslog %}
+    {% if device.primary_ip.assigned_object.vrf != None %}
+set system syslog host {{ syslog._name }} routing-instance {{ device.primary_ip.assigned_object.vrf.name }}
+    {% endif %}
+{% endfor %}

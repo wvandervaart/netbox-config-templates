@@ -1,0 +1,23 @@
+
+delete chassis fpc 0 pic 0
+{% set mapping = ({"1000base-t":"1g","1000base-x-sfp":"1g","25gbase-x-sfp28":"25g"}) %}
+{# build a port-group -> speed map in a single pass, keeping the first typed interface seen per group #}
+{% set pg_speed = {} %}
+{% for interface in device_interfaces %}
+    {% if interface.cf.QFX_PORTGROUP is not none and interface.cf.QFX_PORTGROUP not in pg_speed and interface.type %}
+        {% set tmp = pg_speed.update({interface.cf.QFX_PORTGROUP: interface.type}) %}
+    {% endif %}
+{% endfor %}
+{# QFX_PORTGROUP values above 44 address the second FPC/PIC (e.g. a virtual-chassis member); the actual port number wraps via % 90 #}
+{% for portgroup, speed in pg_speed.items() %}
+    {% if portgroup > 44 %}
+        {% set fpc = 1 %}
+        {% set port = portgroup % 90 %}
+    {% else %}
+        {% set fpc = 0 %}
+        {% set port = portgroup %}
+    {% endif %}
+    {% if speed in mapping %}
+set chassis fpc {{ fpc }} pic 0 port {{ port }} speed {{ mapping[speed] }}
+    {% endif %}
+{% endfor %}

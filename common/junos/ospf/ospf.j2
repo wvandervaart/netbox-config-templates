@@ -1,0 +1,45 @@
+
+{# loop through interfaces and configure OSPF on the correct ones #}
+{% set vrfs = [] %}
+{% for interface in device_interfaces %}
+    {% if interface.enabled == true and interface.cf.OSPF_AREA != None %}
+        {% if interface.vrf.name is defined %}
+            {% set ri = "routing-instances " + interface.vrf.name + " " %}
+            {% set _ = vrfs.append(interface.vrf.name ) %}
+        {% else %}
+            {% set ri = "" %}
+            {% set _ = vrfs.append("global") %}
+        {% endif %}
+        {% if interface.cf.OSPF_VERSION == "2" or interface.cf.OSPF_VERSION == "23" or interface.cf.OSPF_VERSION == None %}
+            {% if interface.cf.OSPF_PASSIVE == true %}
+set {{ ri }}protocols ospf area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} passive
+            {% endif %}
+            {% if interface.cf.OSPF_BFD == true %}
+set {{ ri }}protocols ospf area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} bfd-liveness-detection minimum-interval 300
+set {{ ri }}protocols ospf area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} bfd-liveness-detection multiplier 3
+            {% endif %}
+            {% if interface.cf.OSPF_NETWORK_TYPE != None %}
+set {{ ri }}protocols ospf area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} interface-type {{ interface.cf.OSPF_NETWORK_TYPE }}
+            {% endif %}
+        {% endif %}
+        {% if interface.cf.OSPF_VERSION == "3" or interface.cf.OSPF_VERSION == "23" %}
+            {% if interface.cf.OSPF_PASSIVE == true %}
+set {{ ri }}protocols ospf3 area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} passive
+            {% endif %}
+            {% if interface.cf.OSPF_BFD == true %}
+set {{ ri }}protocols ospf3 area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} bfd-liveness-detection minimum-interval 300
+set {{ ri }}protocols ospf3 area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} bfd-liveness-detection multiplier 3
+            {% endif %}
+            {% if interface.cf.OSPF_NETWORK_TYPE != None %}
+set {{ ri }}protocols ospf3 area {{ interface.cf.OSPF_AREA }} interface {{ interface.name }} interface-type {{ interface.cf.OSPF_NETWORK_TYPE }}
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+{% for vrf in vrfs | unique | list %}
+    {% if vrf == "global" %}
+set protocols ospf reference-bandwidth 1000g
+    {% else %}
+set routing-instances {{ vrf }} protocols ospf reference-bandwidth 1000g
+    {% endif %}
+{% endfor %}

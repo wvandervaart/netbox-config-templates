@@ -1,0 +1,37 @@
+
+{% for route in device.static_routes.all() %}
+    {% if route.next_hop | string == "255.255.255.255" %}
+        {% set nexthop = "Null0" %}
+    {% else %}
+        {% set nexthop = route.next_hop | string %}
+    {% endif %}
+    {% if route.vrf is defined and route.vrf != None %}
+        {% if ':' in route.prefix | string %}
+ipv6 route vrf {{ route.vrf.name }} {{ route.prefix }} {{ nexthop }}
+            {% if route.cf.BFD == True %}
+set routing-instances {{ route.vrf.name }} routing-options rib {{ route.vrf.name }}.inet6.0 static route {{ route.prefix }} bfd-liveness-detection minimum-interval 300
+set routing-instances {{ route.vrf.name }} routing-options rib {{ route.vrf.name }}.inet6.0 static route {{ route.prefix }} bfd-liveness-detection multiplier 3
+            {% endif %}
+        {% else %}
+ip route vrf {{ route.vrf.name }} {{ route.prefix }} {{ nexthop }}
+            {% if route.cf.BFD == True %}
+set routing-instances {{ route.vrf.name }} routing-options static route {{ route.prefix }} bfd-liveness-detection minimum-interval 300
+set routing-instances {{ route.vrf.name }} routing-options static route {{ route.prefix }} bfd-liveness-detection multiplier 3
+            {% endif %}
+        {% endif %}
+    {% else %}
+        {% if ':' in route.prefix | string %}
+ipv6 route {{ route.prefix }} {{ nexthop }}
+            {% if route.cf.BFD == True %}
+set routing-options rib inet6.0 static route {{ route.prefix }} bfd-liveness-detection minimum-interval 300
+set routing-options rib inet6.0 static route {{ route.prefix }} bfd-liveness-detection multiplier 3
+            {% endif %}
+        {% else %}
+ip route {{ route.prefix }} {{ nexthop }}
+            {% if route.cf.BFD == True %}
+set routing-options static route {{ route.prefix }} bfd-liveness-detection minimum-interval 300
+set routing-options static route {{ route.prefix }} bfd-liveness-detection multiplier 3
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endfor %}

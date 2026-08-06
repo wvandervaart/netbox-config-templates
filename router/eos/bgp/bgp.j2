@@ -1,0 +1,105 @@
+{% set ns = namespace(enabled_vrfs=[], interface=None) %}
+router bgp {{ bgp.asn }}
+   router-id {{ device.primary_ip.address.ip }}
+   maximum-paths 8 ecmp 16
+{% set int_pgids = [] %}
+{% set ext_pgids = [] %}
+{% set interfaces_by_vrf = {} %}
+{% for iface in device_interfaces %}
+    {% if iface.vrf.id is defined %}
+        {% set _ = interfaces_by_vrf.setdefault(iface.vrf.id, []).append(iface) %}
+    {% endif %}
+{% endfor %}
+{% for peer in bgp_sessions %}
+    {% set vrf = peer.local_address.vrf %}
+    {% if vrf.name is defined and vrf not in ns.enabled_vrfs %}
+        {% set _ = ns.enabled_vrfs.append(vrf) %}
+    {% endif %}
+    {% if peer.remote_as.asn == peer.local_as.asn %}
+        {% set _ = int_pgids.append(peer.peer_group.id) %}
+        {% if vrf.name is not defined %}
+   neighbor {{ peer.remote_address.address.ip }} peer group {{ peer.peer_group.name }}
+   neighbor {{ peer.remote_address.address.ip }} remote-as {{ peer.remote_as.asn }}
+        {% endif %}
+    {% else %}
+        {% set _ = ext_pgids.append(peer.peer_group.id) %}
+        {% if vrf.name is not defined %}
+   neighbor {{ peer.remote_address.address.ip }} remote-as {{ peer.remote_as.asn }}
+        {% endif %}
+    {% endif %}
+    {% if peer.description is defined and peer.description != "" and vrf.name is not defined %}
+   neighbor {{ peer.remote_address.address.ip }} description {{ peer.description }}
+    {% endif %}
+{% endfor %}
+{% for pg in bgp_peer_groups %}
+    {% if pg.id in int_pgids or pg.id in ext_pgids %}
+   neighbor {{ pg.name }} peer group
+        {% if pg.cf.AUTH_KEY is defined and pg.cf.AUTH_KEY is string  %}
+   neighbor {{ pg.name }} password 7 {{ pg.cf.AUTH_KEY }}
+        {% endif %}
+        {% if pg.cf.PREFIX_LIMIT is defined and pg.cf.PREFIX_LIMIT is integer  %}
+   neighbor {{ pg.name }} maximum-routes {{ pg.cf.PREFIX_LIMIT }}
+        {% endif %}
+        {% if pg.cf.BGP_NEXTHOP is defined and pg.cf.BGP_NEXTHOP is string  %}
+   neighbor {{ pg.name }} next-hop-{{ pg.cf.BGP_NEXTHOP }}
+        {% endif %}
+        {% if pg.export_policies is defined %}
+            {% for export_policies in pg.export_policies.all() %}
+   neighbor {{ pg.name }} route-map {{ export_policies.name }} out
+            {% endfor %}
+        {% endif %}
+        {% if pg.import_policies is defined %}
+            {% for import_policies in pg.import_policies.all() %}
+   neighbor {{ pg.name }} route-map {{ import_policies.name }} in
+            {% endfor %}
+        {% endif %}
+        {% if pg.name == "SPINE" or pg.name == "LEAF" %}
+   neighbor {{ pg.name }} remote-as {{ bgp.asn }}
+   neighbor {{ pg.name }} rib-in pre-policy retain all
+   neighbor {{ pg.name }} route-reflector-client
+   neighbor {{ pg.name }} send-community extended
+   address-family evpn
+     neighbor {{ pg.name }} activate
+    !
+        {% endif %}
+   !
+   address-family ipv4
+        {% if pg.name == "SPINE" or pg.name == "LEAF" %}
+     no neighbor {{ pg.name }} activate
+        {% else %}
+     neighbor {{ pg.name }} activate
+        {% endif %}
+   !
+    {% endif %}
+{% endfor %}
+{% for vrf in ns.enabled_vrfs %}
+    {% set ns.interface = None %}
+    {% for iface in interfaces_by_vrf.get(vrf.id, []) %}
+        {% if 'Loopback' in iface.name %}
+            {% set ns.interface = iface %}
+        {% endif %}
+    {% endfor %}
+    {% if ns.interface != None %}
+        {% set id = ns.interface.ip_addresses.all()[0].address.ip %}
+    {% else %}
+        {% set id = device.primary_ip.address.ip %}
+    {% endif %}
+   vrf {{ vrf.name }}
+      rd {{ device.primary_ip.address.ip }}:{{ vrf.rd }}
+      router-id {{ id }}
+      bgp missing-policy direction in action deny
+      bgp missing-policy direction out action deny
+      graceful-restart restart-time 300
+      graceful-restart
+      maximum-paths 128 ecmp 512
+    {% for peer in bgp_sessions if peer.remote_address.vrf == vrf %}
+      neighbor {{ peer.remote_address.address.ip }} peer group {{ peer.peer_group.name }}
+      neighbor {{ peer.remote_address.address.ip }} remote-as {{ peer.remote_as.asn }}
+        {% if peer.description is defined and peer.description != "" %}
+      neighbor {{ peer.remote_address.address.ip }} description {{ peer.description }}
+        {% endif %}
+    {% endfor %}
+      redistribute connected
+      redistribute static
+{% endfor %}
+!

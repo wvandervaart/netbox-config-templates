@@ -1,0 +1,11 @@
+{% if device.cf.GNMI_MONITORED is defined and device.cf.GNMI_MONITORED == True %}
+set system services extension-service request-response grpc clear-text address {{ device.primary_ip.address.ip }}
+set system services extension-service request-response grpc clear-text port 32767
+set system services extension-service notification allow-clients address 10.99.0.10/32
+set system services extension-service notification allow-clients address 10.99.0.11/32
+set system services extension-service notification allow-clients address 10.99.0.12/32
+set system services extension-service notification allow-clients address 10.99.0.13/32
+{% if device.primary_ip.assigned_object.vrf != None %}
+set system services extension-service request-response grpc routing-instance {{ device.primary_ip.assigned_object.vrf.name }}
+{% endif %}
+{% endif %}

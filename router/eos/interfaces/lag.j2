@@ -1,0 +1,56 @@
+{% set ns = namespace(dev_count=0) %}
+{% set mapping = ({"1000base-t":"1g","25gbase-x-sfp28":"25g","10gbase-x-sfpp":"10g","100gbase-x-qsfp28":"100g"}) %}
+{% set lagspeed = {} %}
+{% for interface in device_interfaces %}
+    {% if ( (interface.connected_endpoints is defined ) and (interface.connected_endpoints != [] ) and interface.connected_endpoints[0].device is defined ) %}
+        {% if interface.description != "" %}
+            {% set description = interface.description + " :: " + interface.connected_endpoints[0].device.name + "-" + interface.connected_endpoints[0].name %}
+        {% else %}
+            {% set description = interface.connected_endpoints[0].device.name + "-" + interface.connected_endpoints[0].name %}
+        {% endif %}
+    {% elif ( (interface.connected_endpoints is defined ) and (interface.connected_endpoints != [] ) and interface.connected_endpoints[0].name is defined ) %}
+        {% if interface.description != "" %}
+            {% set description = interface.description + " :: " + interface.connected_endpoints[0].name %}
+        {% else %}
+            {% set description = interface.connected_endpoints[0].name %}
+        {% endif %}
+    {% else %}
+        {% set description = interface.description %}
+    {% endif %}
+    {% if interface.link_peers is defined and interface.link_peers != [] and interface.link_peers[0].cable is defined and interface.link_peers[0].cable.label != "" %}
+        {% set description = description + " :: " + interface.link_peers[0].cable.label %}
+    {% endif %}
+    {% if interface.enabled == true %}
+        {% if  (interface.lag is defined and interface.lag != None )  %}
+            {% if interface.type is defined %}
+        {# ugly truncate, need to fix for different portspeeds (1g/100g) #}
+                {% set speed = mapping[interface.type] %}
+                {% set _ = lagspeed.update({interface.lag.name: speed | lower}) %}
+            {% endif %}
+interface {{ interface.name }}
+            {% if description != "" %}
+   description {{ interface.lag.name | replace("Port-Channel", "Po") }} :: {{ description }}
+            {% endif %}
+   no switchport
+   channel-group {{ interface.lag.name | replace("Port-Channel", "") }} mode active
+            {% if "none" in (interface.cf.get('FEC') or []) %}
+   no error-correction encoding
+            {% endif %}
+            {% if lagspeed[interface.lag.name] == "25g" %}
+   speed forced 25gfull
+            {% endif %}
+!
+        {% endif %}
+        {% if interface.type == "lag" %}
+            {% if (interface.mtu is defined and interface.mtu | int > 0 ) %}
+interface {{ interface.name }}
+                {% if interface.description != "" %}
+   description {{ interface.description }}
+                {% endif %}
+     mtu {{ interface.mtu }}
+   no switchport
+!
+            {% endif %}
+        {% endif %}
+    {% endif %}
+{% endfor %}

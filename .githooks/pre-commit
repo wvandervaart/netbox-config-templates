@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Runs ./lint.sh before every commit and blocks the commit if it fails.
+#
+# This hook lives in-repo (not .git/hooks, which isn't version-controlled)
+# and is only active once you point git at it - see the one-time setup note
+# in CLAUDE.md ("Linting"): `git config core.hooksPath .githooks`.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+if ! ./lint.sh; then
+    echo "" >&2
+    echo "pre-commit: lint.sh failed - fix the errors above, or skip with 'git commit --no-verify'." >&2
+    exit 1
+fi

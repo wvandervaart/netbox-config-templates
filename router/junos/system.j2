@@ -1,0 +1,17 @@
+
+set system management-instance
+set system ntp source-address {{ device.primary_ip.address.ip }}
+{#
+{% for interface in device_interfaces %}
+    {% for ip in interface.ip_addresses.all() %}
+        {% if ip.role is defined and ip.role == 'vrrp' %}
+            {% set ns.vrrp = True %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{% if ns.vrrp == True %}
+set system arp passive-learning
+{% endif %}
+#}
+set groups MTU-1500 interfaces <*> unit <*> family inet mtu 1500
+set chassis alarm management-ethernet link-down ignore

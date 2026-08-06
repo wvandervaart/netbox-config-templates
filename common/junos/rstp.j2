@@ -1,0 +1,12 @@
+delete protocols rstp
+{% for interface in device_interfaces %}
+    {% if interface.enabled == true and interface.cf.get('RSTP_OFF') %}
+set protocols rstp interface {{ interface.name }} disable
+    {% endif %}
+{% endfor %}
+delete protocols layer2-control bpdu-block
+{% for interface in device_interfaces %}
+    {% if interface.enabled == true and interface.cf.get('RSTP_OFF') %}
+set protocols layer2-control bpdu-block interface {{ interface.name }} drop
+    {% endif %}
+{% endfor %}

@@ -1,0 +1,8 @@
+
+{% for ntp in utility.ntp %}
+    {% if device.primary_ip.assigned_object.vrf != None %}
+set system ntp server {{ ntp }} routing-instance {{ device.primary_ip.assigned_object.vrf.name }}
+    {% else %}
+set system ntp server {{ ntp }}
+    {% endif %}
+{% endfor %}

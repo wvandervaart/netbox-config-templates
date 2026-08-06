@@ -1,0 +1,8 @@
+
+delete policy-options 
+{% if device.role.name == "spine" or device.role.name == "leaf" %}
+set policy-options policy-statement LBPP then load-balance per-packet
+{% endif %}
+{# Legacy config RE-protect policy #}
+set policy-options prefix-list noc-servers 10.99.0.20/32
+set policy-options prefix-list noc-servers 10.99.0.21/32

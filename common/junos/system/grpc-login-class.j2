@@ -1,0 +1,6 @@
+
+set system login class grpc-operator permissions view
+set system login class grpc-operator allow-grpc-rpc-regexps /gnmi.gNMI/Get
+set system login class grpc-operator allow-grpc-rpc-regexps /gnmi.gNMI/Subscribe
+set system login class grpc-operator allow-grpc-rpc-regexps /gnmi.gNMI/Capabilities
+set system login class grpc-operator deny-grpc-rpc-regexps /gnmi.gNMI/Set

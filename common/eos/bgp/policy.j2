@@ -1,0 +1,126 @@
+{# find policies applicable to current device #}
+{% set ns = namespace(pl_match_type="", actionstr="", aspaths=[], prefix_lists=[]) %}
+{% set pols = [] %}
+{% set protocol = {"direct": "connected", "static": "static", "bgp": "bgp"} %}
+{# collect all import/export policies from BGP sessions and their peer groups #}
+{% for peer in bgp_sessions %}
+    {% set policy_sets = [peer.import_policies.all(), peer.peer_group.import_policies.all(), peer.export_policies.all(), peer.peer_group.export_policies.all()] %}
+    {% for policy_set in policy_sets %}
+        {% for policy in policy_set %}
+            {% if policy not in pols %}
+                {% set _ = pols.append(policy) %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+{# All RoutingPolicy objects by name, fetched once instead of one .get() per
+   match_custom "policy" reference below #}
+{% set all_policies_by_name = {} %}
+{% for rp in netbox_bgp.RoutingPolicy.objects.all().prefetch_related(
+    'rules__match_ip_address', 'rules__match_ipv6_address', 'rules__match_community'
+) %}
+    {% set _ = all_policies_by_name.setdefault(rp.name, rp) %}
+{% endfor %}
+{# start the good stuff #}
+{% for poli in pols %}
+    {% for policy in poli.rules.all() %}
+        {% set ns.pl_match_type = "" %}
+route-map {{ policy.routing_policy.name }} {{ policy.action }} {{ policy.index + 1 }}
+        {# prefix-list match-type #}
+        {% if policy.match_custom is defined and policy.match_custom is iterable %}
+            {% for pol in policy.match_custom %}
+                {% if pol["pl_match_type"] is defined %}
+                    {% set ns.pl_match_type = " " + pol["pl_match_type"] %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {# ipv4 prefix-list #}
+        {% if policy.match_ip_address is defined and policy.match_ip_address.all() is iterable %}
+            {% for pol in policy.match_ip_address.all() %}
+  match ip address prefix-list {{ pol.name }}
+            {% endfor %}
+        {% endif %}
+        {# ipv6 prefix-list #}
+        {% if policy.match_ipv6_address is defined and policy.match_ipv6_address.all() is iterable %}
+            {% for pol in policy.match_ipv6_address.all() %}
+                {% if ns.pl_match_type != "" %}
+  match prefix-list-filter {{ pol.name }}
+                {% else %}
+  match prefix-list {{ pol.name }}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {# communities #}
+        {% if policy.match_community is defined and policy.match_community.all() is iterable %}
+            {% for pol in policy.match_community.all() %}
+  match community {{ pol.description }}
+            {% endfor %}
+        {% endif %}
+        {# custom_policy_match #}
+        {% if policy.match_custom is defined and policy.match_custom is iterable %}
+            {% for pol in policy.match_custom %}
+                {% set match = "" %}
+                {% if pol["name"] is defined %}
+                    {% if pol["name"] == "protocol" %}
+                        {% set match = "source-protocol " + protocol[pol["value"]] %}
+                    {% endif %}
+                    {% if pol["name"] == "policy" %}
+                        {% set linked = all_policies_by_name.get(pol["value"]) %}
+                        {% if linked not in pols %}
+                            {% set _ = pols.append(linked) %}
+                        {% endif %}
+                    {% endif %}
+                    {% if pol["name"] == "as-path" %}
+                        {% set _ = ns.aspaths.append(pol["value"]) %}
+                        {% set match = "as-path " + pol["value"] %}
+                    {% endif %}
+                {% endif %}
+                {% if pol["prefix"] is defined %}
+                    {% set match = match + " " + pol["prefix"] %}
+                {% endif %}
+                {% if pol["name"] == "route-filter" %}
+                    {% set pfx_name = policy.routing_policy.name + "_" + (policy.index + 1) | string %}
+                    {% set _ = ns.prefix_lists.append({"name": pfx_name, "prefix": pol["prefix"], "matchtype": pol["match-type"]}) %}
+                    {% set match = "ip address prefix-list " + pfx_name %}
+                {% endif %}
+                {% if match != "" %}
+  match {{ match }}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {# set actions #}
+        {% if policy.set_actions is defined and (policy.set_actions is iterable and (policy.set_actions is not string and policy.set_actions is not mapping)) %}
+            {% set actionss = policy.set_actions %}
+        {% else %}
+            {% set actionss = [policy.set_actions] %}
+        {% endif %}
+        {% for actions in actionss %}
+            {% if actions is mapping %}
+                {% if actions.name == "as-path-prepend" and actions.action == "default" %}
+                    {% set asprep = device.cf.DEFAULT_AS_PREPEND if device.cf.DEFAULT_AS_PREPEND != None else 0 %}
+                    {% set ns.actionstr = (((bgp.asn | string) + " ") * asprep) | trim %}
+                    {% if ns.actionstr != "" %}
+  set {{ actions.name }} "{{ ns.actionstr }}"
+                    {% endif %}
+                {% elif actions.name != "next-hop" %}
+                    {% if " " in actions.action %}
+  set {{ actions.name }} "{{ actions.action }}"
+                    {% else %}
+  set {{ actions.name }} {{ actions.action }}
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+!
+    {% endfor %}
+{% endfor %}
+{% for aspath in ns.aspaths | unique %}
+ip as-path access-list {{ aspath }} permit .*{{ aspath }}.* any
+{% endfor %}
+{% for pfxl in ns.prefix_lists %}
+    {% set start = "ipv6" if ':' in pfxl.prefix | string else "ip" %}
+    {% set filt = " le 32" if pfxl.matchtype == "orlonger" else "" %}
+{{ start }} prefix-list {{ pfxl.name }}
+    seq 10 permit {{ pfxl.prefix }}{{ filt }}
+!
+{% endfor %}

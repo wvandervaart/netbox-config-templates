@@ -1,0 +1,9 @@
+
+snmp-server ipv4 access-list SNMP
+snmp-server community public-ro-1 ro
+snmp-server community public-ro-2 ro
+!
+ip access-list SNMP
+   10 permit ip host 10.99.0.14 any
+   20 permit ip host 10.99.0.15 any
+!

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.idea/
+.DS_Store
+
+# Contains the real pre-sanitized values (real names, SSH keys, ASN, IPs,
+# carrier names) as the "from" side of every substitution rule - must never
+# be committed to this public repo. Kept locally only; the pre-commit/
+# pre-push hooks reference it by filesystem path, not git tracking.
+scripts/

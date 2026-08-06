@@ -1,0 +1,33 @@
+{# fetched once and reused by every include below - avoids re-querying + N+1 lookups per partial #}
+{% set device_interfaces = device.interfaces.all().select_related('vrf', 'untagged_vlan', 'lag', 'parent').prefetch_related('tagged_vlans', 'tags', 'ip_addresses', '_path', 'cable__terminations') | list %}
+{# site-scoped maintenance VLAN - kept in sync with the identical copies in the other 4 junos mains #}
+{% set maintenance_vlan = ipam.VLAN.objects.filter(site=device.site, tags__name='maintenance').first() %}
+{% include 'mgmt/system.j2' %}
+{% include 'common/junos/system/system.j2' %}
+{% include 'common/junos/system/ntp.j2' %}
+{% include 'common/junos/system/syslog-vrf.j2' %}
+{% include 'mgmt/rstp.j2' %}
+{% include 'common/junos/lldp.j2' %}
+{% include 'common/junos/snmp.j2' %}
+{% include 'mgmt/interfaces/main.j2' %}
+{% include 'common/junos/static-route.j2' %}
+{# fetched once and reused below - avoids re-querying. mgmt only includes common/junos/bgp/prefix-list.j2
+   (no bgp.j2/policy.j2/aspath-list.j2 here), which only reads import/export policies' match_ip_address
+   and match_ipv6_address - so this is narrower than the other roles' bgp_sessions copies. #}
+{% set bgp_sessions = netbox_bgp.BGPSession.objects.filter(device=device).select_related(
+    'peer_group'
+).prefetch_related(
+    'export_policies__rules__match_ip_address',
+    'export_policies__rules__match_ipv6_address',
+    'import_policies__rules__match_ip_address',
+    'import_policies__rules__match_ipv6_address',
+    'peer_group__export_policies__rules__match_ip_address',
+    'peer_group__export_policies__rules__match_ipv6_address',
+    'peer_group__import_policies__rules__match_ip_address',
+    'peer_group__import_policies__rules__match_ipv6_address'
+) | list %}
+{% include 'common/junos/bgp/prefix-list.j2' %}
+{% include 'common/junos/re-protect.j2' %}
+{% include 'common/junos/sflow.j2' %}
+{% include 'mgmt/vlan.j2' %}
+{% include 'common/junos/manual_config.j2' %}

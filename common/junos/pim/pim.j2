@@ -1,0 +1,15 @@
+
+{# loop through interfaces and configure OSPF on the correct ones #}
+{% for interface in device_interfaces %}
+    {% if interface.enabled == true %}
+        {% if interface.cf.PIMIFACEMODE != None %}
+set routing-instances {{ interface.vrf.name }} protocols pim interface {{ interface.name }} mode {{ interface.cf.PIMIFACEMODE }}
+        {% endif %}
+        {% if interface.cf.PIMIFACEPRIO != None %}
+set routing-instances {{ interface.vrf.name }} protocols pim interface {{ interface.name }} priority {{ interface.cf.PIMIFACEPRIO }}
+        {% endif %}
+        {% if interface.cf.PIMIFACEHELLO != None %}
+set routing-instances {{ interface.vrf.name }} protocols pim interface {{ interface.name }} hello-interval {{ interface.cf.PIMIFACEHELLO }}
+        {% endif %}
+    {% endif %}
+{% endfor %}

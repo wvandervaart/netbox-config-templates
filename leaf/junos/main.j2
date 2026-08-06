@@ -1,0 +1,39 @@
+{# fetched once and reused by every include below - avoids re-querying + N+1 lookups per partial #}
+{% set device_interfaces = device.interfaces.all().select_related('vrf', 'untagged_vlan', 'lag', 'parent').prefetch_related('tagged_vlans', 'tags', 'ip_addresses', '_path', 'cable__terminations') | list %}
+{# device-scope maintenance flag - kept in sync with the identical copies in the other 3 junos mains #}
+{% set is_maintenance = "maintenance" in device.tags.names() %}
+{# site-scoped maintenance VLAN - kept in sync with the identical copies in the other 4 junos mains #}
+{% set maintenance_vlan = ipam.VLAN.objects.filter(site=device.site, tags__name='maintenance').first() %}
+{# ESI custom objects (netbox_custom_objects plugin) link an ethernet-segment to the interfaces sharing it - map interface.id -> esi object once here, same rationale as device_interfaces above #}
+{% set esi_model = netbox_custom_objects.CustomObjectType.objects.get(name='esi').get_model() %}
+{% set esi_by_interface = {} %}
+{% for esi in esi_model.objects.filter(interfaces__in=device_interfaces).distinct() %}
+    {% for esi_intf in esi.interfaces.all() %}
+        {% set _ = esi_by_interface.update({esi_intf.id: esi}) %}
+    {% endfor %}
+{% endfor %}
+{% include 'leaf/junos/system.j2' %}
+{% include 'common/junos/system/system.j2' %}
+{% include 'common/junos/system/routing-options.j2' %}
+{% include 'common/junos/system/cos.j2' %}
+{% include 'common/junos/system/ddos.j2' %}
+{% include 'common/junos/system/grpc-login-class.j2' %}
+{% include 'common/junos/vstp.j2' %}
+{% include 'common/junos/chassis.j2' %}
+{% include 'common/junos/lldp.j2' %}
+{% include 'common/junos/snmp.j2' %}
+{% include 'common/junos/grpc.j2' %}
+{% include 'leaf/junos/interfaces/main.j2' %}
+{% include 'leaf/junos/vlan.j2' %}
+{% include 'common/junos/underlay.j2' %}
+{% include 'leaf/junos/overlay/main.j2' %}
+
+delete routing-instances
+{% include 'common/junos/routing-instance.j2' %}
+{% include 'common/junos/static-route.j2' %}
+{% include 'common/junos/re-protect.j2' %}
+{% include 'leaf/junos/bgp/main.j2' %}
+{#% include 'common/junos/igmp-snooping.j2' %#}
+{% include 'common/junos/sflow.j2' %}
+{% include 'common/junos/hash-key.j2' %}
+{% include 'common/junos/manual_config.j2' %}

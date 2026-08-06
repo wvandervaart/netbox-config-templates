@@ -1,0 +1,7 @@
+delete system
+{# set system management-instance #}
+set system ntp source-address {{ device.primary_ip.address.ip }}
+{% for ns in utility.dns %}
+set system name-server {{ ns }} source-address {{ device.primary_ip.address.ip }}
+{% endfor %}
+set chassis alarm management-ethernet link-down ignore

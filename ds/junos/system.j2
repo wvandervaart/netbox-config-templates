@@ -1,0 +1,7 @@
+delete system
+set system management-instance
+{% if device.primary_ip.assigned_object.vrf != None %}
+set system ntp source-address {{ device.primary_ip.address.ip }} routing-instance {{ device.primary_ip.assigned_object.vrf.name }}
+{% else %}
+set system ntp source-address {{ device.primary_ip.address.ip }}
+{% endif %}

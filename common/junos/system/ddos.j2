@@ -1,0 +1,11 @@
+
+{% if ddos_protection is defined %}
+    {% for protocol in ddos_protection.protocols %}
+        {% if protocol.aggregate.bandwidth is defined %}
+set system ddos-protection protocols {{ protocol.name }} aggregate bandwidth {{ protocol.aggregate.bandwidth }}
+        {% endif %}
+        {% if protocol.aggregate.burst is defined %}
+set system ddos-protection protocols {{ protocol.name }} aggregate burst {{ protocol.aggregate.burst }}
+        {% endif %}
+    {% endfor %}
+{% endif %}

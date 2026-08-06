@@ -1,0 +1,12 @@
+{% if 'interfaces' in sflow %}
+sflow sample 32768
+sflow destination {{ sflow.collector }} {{ sflow.port }}
+sflow source-interface Loopback0
+    {% for interface in sflow.interfaces %}
+!
+interface {{ interface }}
+   sflow enable
+    {% endfor %}
+!
+sflow run
+{% endif %}

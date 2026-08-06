@@ -1,0 +1,11 @@
+delete system
+{# set system management-instance  #}
+{% for ntp in utility.ntp %}
+set system ntp server {{ ntp }}
+{% endfor %}
+set system ntp source-address {{ device.primary_ip.address.ip }}
+{% for ns in utility.dns %}
+set system name-server {{ ns }} source-address {{ device.primary_ip.address.ip }}
+{% endfor %}
+set groups MTU-1500 interfaces <*> unit <*> family inet mtu 1500
+set chassis alarm management-ethernet link-down ignore

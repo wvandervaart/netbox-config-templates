@@ -1,0 +1,160 @@
+
+delete protocols bgp
+{# -- Helpers ---------------------------------------------------------------- #}
+{% set ns = namespace(enabled_vrfs=[], has_peers=False) %}
+{% set pg_local_address = {} %}
+{% set pg_as            = {} %}
+{% set pg_vrf           = {} %}
+{% set pg_peers         = {} %}
+{% set int_pgids        = [] %}
+{% set ext_pgids        = [] %}
+{% set is_leaf = True if device.role.name == "leaf" else False %}
+{# -- Shorthand macros ------------------------------------------------------- #}
+{%- macro ri(vrf_name) %}{% if vrf_name %}routing-instances {{ vrf_name }} {% endif %}{%- endmacro %}
+    {%- macro pgb(vrf_name, pgname) %}{{ ri(vrf_name) }}protocols bgp group {{ pgname }}{%- endmacro %}
+        {%- macro nbb(vrf_name, pgname, nbr) %}{{ pgb(vrf_name, pgname) }} neighbor {{ nbr }}{%- endmacro %}
+{# -- Pass 1: per-neighbor config ------------------------------------------- #}
+            {% for peer in bgp_sessions %}
+                {% set vrf      = peer.local_address.vrf %}
+                {% set vrf_name = vrf.name if vrf.name is defined else "" %}
+                {% set family   = "inet" if peer.local_address.family == 4 else "inet6" %}
+                {% set pgid     = peer.peer_group.id %}
+                {% set pgname   = peer.peer_group.name %}
+                {% set nbr      = peer.remote_address.address.ip %}
+                {% set is_ibgp  = peer.remote_as.asn == peer.local_as.asn %}
+{#  #}
+                {% set ns.has_peers = True %}
+                {% set _ = pg_peers.setdefault(pgid, []).append(peer) %}
+                {% if vrf_name %}
+                    {% if vrf not in ns.enabled_vrfs %}{% set _ = ns.enabled_vrfs.append(vrf) %}{% endif %}
+                        {% set _ = pg_vrf.update({pgid: vrf_name}) %}
+                    {% endif %}
+{#  #}
+                    {% if pgid not in int_pgids and pgid not in ext_pgids %}
+set {{ pgb(vrf_name, pgname) }} local-address {{ peer.local_address.address.ip }}
+                        {% set _ = pg_local_address.update({pgid: peer.local_address.address.ip}) %}
+                    {% endif %}
+{#  #}
+                    {% if is_ibgp %}
+                        {% if pgid not in int_pgids %}
+                            {% set _ = int_pgids.append(pgid) %}
+                        {% endif %}
+set {{ nbb(vrf_name, pgname, nbr) }}
+                    {% else %}
+                        {% if pgid not in ext_pgids %}
+                            {% set _ = ext_pgids.append(pgid) %}
+                        {% endif %}
+set {{ nbb(vrf_name, pgname, nbr) }} peer-as {{ peer.remote_as.asn }}
+                        {% set _ = pg_as.update({pgid: peer.remote_as.asn}) %}
+                    {% endif %}
+{#  #}
+                    {% if peer.description %}
+set {{ nbb(vrf_name, pgname, nbr) }} description "{{ peer.description }}"
+                    {% endif %}
+                    {% if peer.cf.get('PREFIX_LIMIT') is integer %}
+set {{ nbb(vrf_name, pgname, nbr) }} family {{ family }} unicast prefix-limit maximum {{ peer.cf.PREFIX_LIMIT }}
+set {{ nbb(vrf_name, pgname, nbr) }} family {{ family }} unicast prefix-limit teardown
+                    {% endif %}
+                    {% if peer.cf.get('AUTH_KEY') is string %}
+set {{ nbb(vrf_name, pgname, nbr) }} authentication-key "{{ peer.cf.AUTH_KEY }}"
+                    {% endif %}
+                    {% if peer.status != "active" %}
+set {{ nbb(vrf_name, pgname, nbr) }} shutdown
+                    {% endif %}
+                {% endfor %}
+{# -- Pass 2: per-peer-group config ----------------------------------------- #}
+                {% for pg in bgp_peer_groups %}
+                    {% set pgid     = pg.id %}
+                    {% set pgname   = pg.name %}
+                    {% set active   = pgid in int_pgids or pgid in ext_pgids %}
+                    {% if active %}
+                        {% set vrf_name = pg_vrf[pgid] if pg_vrf[pgid] is defined else "" %}
+                        {% set family   = "inet6" if "_V6" in pgname else "inet" %}
+                        {% set is_ibgp  = pgid in int_pgids %}
+                        {% set bfdint   = pg.cf.BFD_INTERVAL if pg.cf.BFD_INTERVAL != None else 300 %}
+{#  #}
+set {{ pgb(vrf_name, pgname) }} type {{ "internal" if is_ibgp else "external" }}
+                        {% if not is_ibgp %}
+set {{ pgb(vrf_name, pgname) }} peer-as {{ pg_as[pgid] }}
+                        {% endif %}
+                        {% if pgname in ["SPINE", "LEAF"] %}
+set {{ pgb(vrf_name, pgname) }} family evpn signaling
+                        {% endif %}
+                        {% if pg.cf.get('AUTH_KEY') is string %}
+set {{ pgb(vrf_name, pgname) }} authentication-key "{{ pg.cf.AUTH_KEY }}"
+                        {% endif %}
+                        {% if pg.cf.BFD == True %}
+set {{ pgb(vrf_name, pgname) }} bfd-liveness-detection minimum-interval {{ bfdint }}
+set {{ pgb(vrf_name, pgname) }} bfd-liveness-detection multiplier 3
+                        {% endif %}
+                        {% if pg.cf.get('PREFIX_LIMIT') is integer %}
+set {{ pgb(vrf_name, pgname) }} family {{ family }} unicast prefix-limit maximum {{ pg.cf.PREFIX_LIMIT }}
+set {{ pgb(vrf_name, pgname) }} family {{ family }} unicast prefix-limit teardown
+                        {% endif %}
+                        {% if pg.cf.FILTER_PRIVATE_ASN == True %}
+set {{ pgb(vrf_name, pgname) }} remove-private all
+                        {% endif %}
+                        {% set pg_imports = pg.import_policies.all() | list %}
+                        {% set pg_exports = pg.export_policies.all() | list %}
+                        {% if is_maintenance %}
+set {{ pgb(vrf_name, pgname) }} export POL_REJECT
+                        {% else %}
+                            {% for pol in pg_exports %}
+set {{ pgb(vrf_name, pgname) }} export {{ pol.name }}
+                            {% endfor %}
+                        {% endif %}
+                        {% for pol in pg_imports %}
+set {{ pgb(vrf_name, pgname) }} import {{ pol.name }}
+                        {% endfor %}
+set {{ pgb(vrf_name, pgname) }} multipath
+                        {% if pgname not in ["SPINE", "LEAF"] or not is_leaf %}
+set {{ pgb(vrf_name, pgname) }} family {{ family }} unicast
+                        {% endif %}
+        {# -- Per-neighbor overrides within this peer-group ------------------ #}
+                        {% for peer in pg_peers.get(pgid, []) %}
+                            {% set vrf      = peer.local_address.vrf %}
+                            {% set vrf_name = vrf.name if vrf.name is defined else "" %}
+                            {% set nbr      = peer.remote_address.address.ip %}
+{#  #}
+                            {% if pg_local_address.get(pgid) != peer.local_address.address.ip %}
+set {{ nbb(vrf_name, pgname, nbr) }} local-address {{ peer.local_address.address.ip }}
+                            {% endif %}
+                            {% if peer.local_as.asn != bgp.asn and not is_leaf %}
+set {{ nbb(vrf_name, pgname, nbr) }} local-as {{ peer.local_as.asn }}
+                            {% endif %}
+                            {% if is_maintenance %}
+set {{ nbb(vrf_name, pgname, nbr) }} export POL_REJECT
+                            {% else %}
+                                {% for pol in peer.export_policies.all() %}
+                                    {% if pol not in pg_exports %}
+set {{ nbb(vrf_name, pgname, nbr) }} export {{ pol.name }}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            {% for pol in peer.import_policies.all() %}
+                                {% if pol not in pg_imports %}
+set {{ nbb(vrf_name, pgname, nbr) }} import {{ pol.name }}
+                                {% endif %}
+                            {% endfor %}
+                            {% set is_llgr_off = peer.cf.get('LLGR_OFF') %}
+                            {% if is_llgr_off %}
+set {{ nbb(vrf_name, pgname, nbr) }} graceful-restart long-lived receiver disable
+                            {% endif %}
+                        {% endfor %}
+    {% endif %}{# end active #}
+                    {% endfor %}
+{# -- VRF-level BGP settings ------------------------------------------------- #}
+                    {% if not is_leaf %}
+                        {% for vrf in ns.enabled_vrfs %}
+set routing-instances {{ vrf.name }} protocols bgp bgp-error-tolerance
+                        {% endfor %}
+                    {% endif %}
+{# -- Global BGP settings ---------------------------------------------------- #}
+                    {% if ns.has_peers %}
+set protocols bgp precision-timers
+set protocols bgp log-updown
+set protocols bgp graceful-restart
+                        {% if not is_leaf %}
+set protocols bgp bgp-error-tolerance
+                        {% endif %}
+                    {% endif %}

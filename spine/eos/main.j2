@@ -1,0 +1,9 @@
+{# fetched once and reused by every include below - avoids re-querying + N+1 lookups per partial #}
+{% set device_interfaces = device.interfaces.all().select_related('vrf', 'lag').prefetch_related('tags', 'ip_addresses', '_path', 'cable__terminations') | list %}
+{% include 'common/eos/system.j2' %}
+{% include 'common/eos/api.j2' %}
+{% include 'common/eos/snmp.j2' %}
+{% include 'spine/eos/interfaces/main.j2' %}
+{% include 'common/eos/ospf.j2' %}
+{% include 'common/eos/sflow.j2' %}
+{% include 'spine/eos/bgp/main.j2' %}

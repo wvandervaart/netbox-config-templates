@@ -1,0 +1,9 @@
+
+set class-of-service shared-buffer ingress percent 100
+set class-of-service shared-buffer ingress buffer-partition lossless percent 5
+set class-of-service shared-buffer ingress buffer-partition lossless-headroom percent 0
+set class-of-service shared-buffer ingress buffer-partition lossy percent 95
+set class-of-service shared-buffer egress percent 100
+set class-of-service shared-buffer egress buffer-partition lossless percent 5
+set class-of-service shared-buffer egress buffer-partition lossy percent 75
+set class-of-service shared-buffer egress buffer-partition multicast percent 20

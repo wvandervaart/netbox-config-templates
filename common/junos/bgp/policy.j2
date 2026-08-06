@@ -1,0 +1,153 @@
+{# -- Collect applicable policies ------------------------------------------- #}
+{% set pols = [] %}
+{% set ns = namespace(pl_match_type="", actionstr="", aspaths=[], enabled_vrfs=[]) %}
+{% macro register_rp(rp) %}
+    {% if rp not in pols %}
+        {% set _ = pols.append(rp) %}
+    {% endif %}
+{% endmacro %}
+{% for peer in bgp_sessions %}
+    {% for policy_set in [
+        peer.import_policies.all(),
+        peer.peer_group.import_policies.all(),
+        peer.export_policies.all(),
+        peer.peer_group.export_policies.all()
+    ] %}
+        {% for policy in policy_set %}
+            {% if policy not in pols %}
+                {% set _ = register_rp(policy) %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+{# -- Always-add routing-policies -------------------------------------------- #}
+{% for rp in netbox_bgp.RoutingPolicy.objects.all().prefetch_related('tags') %}
+    {% if "ALWAYS_ADD" in rp.tags.names() %}{{ register_rp(rp) }}{% endif %}
+{% endfor %}
+{# -- Collect enabled VRFs --------------------------------------------------- #}
+{% for interface in device_interfaces %}
+    {% if interface.enabled and interface.vrf.id is defined and interface.vrf not in ns.enabled_vrfs %}
+        {% set _ = ns.enabled_vrfs.append(interface.vrf) %}
+    {% endif %}
+{% endfor %}
+{% for vrf in ns.enabled_vrfs %}
+    {% set vni = vrf.cf.get('VNI') %}
+    {% if vni and vni.cf.EXPORT_POLICY is defined and vni.cf.EXPORT_POLICY not in pols %}
+        {% set _ = pols.append(vni.cf.EXPORT_POLICY) %}
+    {% endif %}
+    {% set ospf_export = vrf.cf.get('OSPF_EXPORT') %}
+    {% if ospf_export and ospf_export not in pols %}
+        {% set _ = pols.append(ospf_export) %}
+    {% endif %}
+{% endfor %}
+{# -- Helpers ---------------------------------------------------------------- #}
+{% set action = {"permit": "accept", "deny": "reject"} %}
+{% set default_prepend = device.cf.DEFAULT_AS_PREPEND or 0 %}
+{# All RoutingPolicy objects by name, fetched once instead of one .get() per
+   match_custom "policy" reference below #}
+{% set all_policies_by_name = {} %}
+{% for rp in netbox_bgp.RoutingPolicy.objects.all().prefetch_related(
+    'rules__match_ip_address', 'rules__match_ipv6_address',
+    'rules__match_aspath_list', 'rules__match_community'
+) %}
+    {% set _ = all_policies_by_name.setdefault(rp.name, rp) %}
+{% endfor %}
+{# -- Render policies -------------------------------------------------------- #}
+{% for poli in pols %}
+    {% for rule in poli.rules.all() %}
+        {% set stmt = rule.routing_policy.name %}
+        {% set term = rule.index %}
+        {% set terminal_action = action[rule.action] %}
+        {% set is_export = "EXPORT" in stmt %}
+        {# Resolve pl_match_type from match_custom #}
+        {% set ns.pl_match_type = "" %}
+        {% if rule.match_custom is defined and rule.match_custom is iterable %}
+            {% for mc in rule.match_custom %}
+                {% if mc.pl_match_type is defined %}
+                    {% set ns.pl_match_type = " " + mc.pl_match_type %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {# AS-path group matches #}
+        {% if rule.match_aspath_list is defined %}
+            {% for pol in rule.match_aspath_list.all() %}
+set policy-options policy-statement {{ stmt }} term {{ term }} from as-path-group {{ pol.name }}{{ ns.pl_match_type }}
+            {% endfor %}
+        {% endif %}
+        {# IPv4 prefix-list matches #}
+        {% if rule.match_ip_address is defined %}
+            {% for pol in rule.match_ip_address.all() %}
+                {% set pl_kw = "prefix-list-filter" if ns.pl_match_type else "prefix-list" %}
+set policy-options policy-statement {{ stmt }} term {{ term }} from {{ pl_kw }} {{ pol.name }}{{ ns.pl_match_type }}
+            {% endfor %}
+        {% endif %}
+        {# IPv6 prefix-list matches #}
+        {% if rule.match_ipv6_address is defined %}
+            {% for pol in rule.match_ipv6_address.all() %}
+                {% set pl_kw = "prefix-list-filter" if ns.pl_match_type else "prefix-list" %}
+set policy-options policy-statement {{ stmt }} term {{ term }} from {{ pl_kw }} {{ pol.name }}{{ ns.pl_match_type }}
+            {% endfor %}
+        {% endif %}
+        {# Community matches #}
+        {% if rule.match_community is defined %}
+            {% for pol in rule.match_community.all() %}
+set policy-options policy-statement {{ stmt }} term {{ term }} from community {{ pol.description }}
+            {% endfor %}
+        {% endif %}
+        {# Custom matches (and side-effects: linked policies, as-paths) #}
+        {% if rule.match_custom is defined and rule.match_custom is iterable %}
+            {% for mc in rule.match_custom %}
+                {% if mc.name is defined %}
+                    {% if mc.name == "policy" %}
+                        {% set linked = all_policies_by_name.get(mc.value) %}
+                        {% if linked not in pols %}
+                            {% set _ = pols.append(linked) %}
+                        {% endif %}
+                    {% elif mc.name == "as-path" %}
+                        {% set _ = ns.aspaths.append(mc.value) %}
+                    {% endif %}
+                    {% set match_parts = [mc.name] %}
+                    {% if mc.prefix is defined %}
+                        {% set _ = match_parts.append(mc.prefix) %}
+                    {% endif %}
+                    {% if mc["match-type"] is defined %}
+                        {% set _ = match_parts.append(mc["match-type"]) %}
+                    {% endif %}
+                    {% if mc.value is defined %}
+                        {% set _ = match_parts.append(mc.value) %}
+                    {% endif %}
+set policy-options policy-statement {{ stmt }} term {{ term }} from {{ match_parts | join(" ") }}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {# -- Actions -------------------------------------------------------- #}
+        {% set no_as_prepend = namespace(value=True) %}
+        {% set actionss = rule.set_actions if (rule.set_actions is iterable and rule.set_actions is not string and rule.set_actions is not mapping) else [rule.set_actions] %}
+        {% for actions in actionss %}
+            {% if actions is mapping %}
+                {% if actions.name == "as-path-prepend" %}
+                    {% set no_as_prepend.value = False %}
+                    {% if actions.action == "default" %}
+                        {% set ns.actionstr = ([bgp.asn | string] * default_prepend) | join(" ") %}
+                    {% else %}
+                        {% set ns.actionstr = actions.action %}
+                    {% endif %}
+                    {% if ns.actionstr != "" %}
+set policy-options policy-statement {{ stmt }} term {{ term }} then as-path-prepend "{{ ns.actionstr | trim }}"
+                    {% endif %}
+                {% else %}
+                    {% if " " in actions.action %}
+set policy-options policy-statement {{ stmt }} term {{ term }} then {{ actions.name }} "{{ actions.action }}"
+                    {% else %}
+set policy-options policy-statement {{ stmt }} term {{ term }} then {{ actions.name }} {{ actions.action }}
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+set policy-options policy-statement {{ stmt }} term {{ term }} then {{ terminal_action }}
+    {% endfor %}
+{% endfor %}
+{# -- AS-path definitions ---------------------------------------------------- #}
+{% for aspath in ns.aspaths | unique %}
+set policy-options as-path {{ aspath }} .*{{ aspath }}.*
+{% endfor %}

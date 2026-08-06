@@ -1,0 +1,31 @@
+{# fetched once and reused by every bgp/* include below - avoids re-querying + N+1 lookups per partial.
+   Full junos field set (bgp.j2/aspath-list.j2/policy.j2/prefix-list.j2 all consume this) - kept in
+   sync with the identical copies in router/junos/main.j2, spine/junos/main.j2, ds/junos/main.j2.
+   eos/mgmt roles use a narrower copy since their consumers read fewer relations - see those files. #}
+{% set bgp_sessions = netbox_bgp.BGPSession.objects.filter(device=device).select_related(
+    'local_address__vrf', 'remote_address', 'local_as', 'remote_as', 'peer_group'
+).prefetch_related(
+    'tags',
+    'export_policies__rules__match_ip_address',
+    'export_policies__rules__match_ipv6_address',
+    'export_policies__rules__match_aspath_list',
+    'export_policies__rules__match_community',
+    'import_policies__rules__match_ip_address',
+    'import_policies__rules__match_ipv6_address',
+    'import_policies__rules__match_aspath_list',
+    'import_policies__rules__match_community',
+    'peer_group__export_policies__rules__match_ip_address',
+    'peer_group__export_policies__rules__match_ipv6_address',
+    'peer_group__export_policies__rules__match_aspath_list',
+    'peer_group__export_policies__rules__match_community',
+    'peer_group__import_policies__rules__match_ip_address',
+    'peer_group__import_policies__rules__match_ipv6_address',
+    'peer_group__import_policies__rules__match_aspath_list',
+    'peer_group__import_policies__rules__match_community'
+) | list %}
+{% set bgp_peer_groups = netbox_bgp.BGPPeerGroup.objects.all().prefetch_related('export_policies', 'import_policies') | list %}
+{% include 'common/junos/bgp/bgp.j2' %}
+{% include 'common/junos/bgp/aspath-list.j2' %}
+{% include 'common/junos/bgp/policy.j2' %}
+{% include 'common/junos/bgp/prefix-list.j2' %}
+{% include 'common/junos/bgp/community.j2' %}
