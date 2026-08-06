@@ -1,11 +1,28 @@
 #!/usr/bin/env bash
-# Runs ./lint.sh before every commit and blocks the commit if it fails.
+# This is the sanitized *public* copy of netbox-config-templates. Before every
+# commit this hook (1) re-applies scripts/sanitize_for_public_release.py so
+# anything synced in from the private repo (or edited here directly) gets
+# scrubbed, re-stages whatever it changed, (2) hard-fails the commit if the
+# leftover-token sweep still finds a known-sensitive value, then (3) runs
+# ./lint.sh same as the private repo.
 #
 # This hook lives in-repo (not .git/hooks, which isn't version-controlled)
-# and is only active once you point git at it - see the one-time setup note
-# in CLAUDE.md ("Linting"): `git config core.hooksPath .githooks`.
+# and is only active once you point git at it:
+# `git config core.hooksPath .githooks`.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
+
+if [ -f scripts/sanitize_for_public_release.py ]; then
+    echo "pre-commit: applying sanitize_for_public_release.py..."
+    python3 scripts/sanitize_for_public_release.py --apply
+    git add -u
+
+    if ! python3 scripts/sanitize_for_public_release.py --sweep; then
+        echo "" >&2
+        echo "pre-commit: leftover sensitive tokens found after sanitizing - fix scripts/sanitize_map.json or the source data, or skip with 'git commit --no-verify'." >&2
+        exit 1
+    fi
+fi
 
 if ! ./lint.sh; then
     echo "" >&2

@@ -1,12 +1,23 @@
 #!/usr/bin/env bash
-# Runs the pytest suite before every push and blocks the push if it fails.
+# This is the sanitized *public* copy of netbox-config-templates. Before every
+# push this hook re-runs the leftover-token sweep (read-only - it does not
+# modify anything, so a dirty commit fails loudly instead of being silently
+# rewritten on push) and then runs the pytest suite, blocking the push if
+# either fails.
 #
 # This hook lives in-repo (not .git/hooks, which isn't version-controlled) -
-# see the one-time setup note in CLAUDE.md ("Linting"):
 # `git config core.hooksPath .githooks`. Once that's set, this hook is
 # picked up automatically alongside .githooks/pre-commit.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
+
+if [ -f scripts/sanitize_for_public_release.py ]; then
+    if ! python3 scripts/sanitize_for_public_release.py --sweep; then
+        echo "" >&2
+        echo "pre-push: leftover sensitive tokens found - this should have been caught at commit time. Investigate before pushing, or skip with 'git push --no-verify'." >&2
+        exit 1
+    fi
+fi
 
 if ! python3 -c "import pytest" >/dev/null 2>&1; then
     echo "pre-push: pytest not found. Install it with: pip install -r tests/requirements.txt" >&2
@@ -18,8 +29,3 @@ if ! python3 -m pytest tests/; then
     echo "pre-push: tests failed - fix the errors above, or skip with 'git push --no-verify'." >&2
     exit 1
 fi
-
-# Best-effort sync into the sanitized public copy (../netbox-config-templates-clean
-# by default). Never blocks this push - it's a convenience mirror, not a gate -
-# see scripts/sync_to_clean_copy.sh for what it does and doesn't do.
-./scripts/sync_to_clean_copy.sh || echo "pre-push: sync-to-clean step failed, continuing anyway." >&2
