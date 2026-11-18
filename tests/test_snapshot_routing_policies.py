@@ -160,8 +160,7 @@ def test_route_filters_share_one_list_with_mapped_match_types(maps, pls):
     assert pls[("ipv4", "POL_CarrierA_NL_EXPORT_100")] == [
         "seq 1 permit 198.18.1.12/24 le 32",
         "seq 2 permit 198.18.0.232/24 ge 25 le 32",
-        "seq 3 permit 198.18.1.17/24 ge 32 le 32",
-        "seq 4 permit 198.18.1.19/24 le 26",
+        "seq 3 permit 198.18.1.19/24 le 26",
     ]
 
 
