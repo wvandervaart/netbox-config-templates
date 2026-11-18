@@ -1,0 +1,39 @@
+{# XML namespaces of the OcNOS (IP Infusion) native YANG modules the router/ocnos
+   NETCONF templates write to. Pulled in with `{% import 'common/ocnos/ns.j2' as ns %}`
+   (an import, unlike an include, exports these top-level sets).
+
+   Verified against the YANG modules an OcNOS SP box advertises in its <hello> and
+   serves via <get-schema> (revision 2026-02). An augmenting module's namespace goes
+   on the augmented element, e.g. <member-aggregation xmlns="{{ ns.if_aggregate }}">
+   inside an ipi-interface <interface>. #}
+{% set netconf = 'urn:ietf:params:xml:ns:netconf:base:1.0' %}
+{% set base = 'http://www.ipinfusion.com/yang/ocnos/' %}
+{% set system = base ~ 'ipi-system' %}
+{% set user = base ~ 'ipi-user-management' %}
+{% set ntp = base ~ 'ipi-ntp' %}
+{% set dns = base ~ 'ipi-dns-client' %}
+{% set logging = base ~ 'ipi-logging' %}
+{% set snmp = base ~ 'ipi-snmp' %}
+{% set snmp_server = base ~ 'ipi-snmp-server' %}
+{% set snmp_ext = base ~ 'ipi-snmp-server-extended' %}
+{% set ssh = base ~ 'ipi-ssh' %}
+{% set management_server = base ~ 'ipi-management-server' %}
+{% set network_instance = base ~ 'ipi-network-instance' %}
+{% set vrf = base ~ 'ipi-vrf' %}
+{% set bgp_vrf = base ~ 'ipi-bgp-vrf' %}
+{% set interface = base ~ 'ipi-interface' %}
+{% set if_ip = base ~ 'ipi-if-ip' %}
+{% set if_extended = base ~ 'ipi-if-extended' %}
+{% set if_ethernet = base ~ 'ipi-if-ethernet' %}
+{% set if_aggregate = base ~ 'ipi-if-aggregate' %}
+{% set bridge = base ~ 'ipi-bridge' %}
+{% set vlan = base ~ 'ipi-vlan' %}
+{% set port_vlan = base ~ 'ipi-port-vlan' %}
+{% set vrrp = base ~ 'ipi-vrrp' %}
+{% set rib = base ~ 'ipi-rib' %}
+{% set ospf = base ~ 'ipi-ospf' %}
+{% set sflow = base ~ 'ipi-sflow' %}
+{% set sflow_if = base ~ 'ipi-sflow-interface' %}
+{% set bgp = base ~ 'ipi-bgp' %}
+{% set routemap = base ~ 'ipi-routemap' %}
+{% set prefix_list = base ~ 'ipi-prefix-list' %}

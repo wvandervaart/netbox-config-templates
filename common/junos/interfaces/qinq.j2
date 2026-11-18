@@ -43,7 +43,7 @@ set interfaces {{ interface.name }} unit 0 filter output {{ out_filter }}
             {% endif %}
 
 set vlans Q-in-Q interface {{ interface.name }}.0
-set protocols layer2-control mac-rewrite interface {{ interface.name }} protocol all
+{# set protocols layer2-control mac-rewrite interface {{ interface.name }} protocol all  #}
         {% else %}
             {# -- Disabled interface ----------------------------------------- #}
             {% set description = (description ~ " :: DISABLED") if description else "DISABLED" %}

@@ -27,7 +27,7 @@ def test_hostname_and_asn(render, rendered_lines):
 def test_loopback_vrf_dual_stack_addressing(render, rendered_lines):
     lines = rendered_lines(render(TEMPLATE, load_context(DEVICE)))
     assert 'set interfaces lo0 unit 1 description "Loopback :: vrf:internet"' in lines
-    assert "set interfaces lo0 unit 1 family inet address 198.18.0.34/32" in lines
+    assert "set interfaces lo0 unit 1 family inet address 198.18.0.233/32" in lines
     assert "set interfaces lo0 unit 1 family inet6 address 2001:db8:3101::3/128" in lines
 
 
@@ -52,9 +52,12 @@ def test_ospf_underlay_p2p_with_bfd(render, rendered_lines):
 
 def test_bgp_transit_peers(render, rendered_lines):
     lines = rendered_lines(render(TEMPLATE, load_context(DEVICE)))
-    assert "set protocols bgp group CarrierA_NL neighbor 198.18.0.73 peer-as 1299" in lines
-    assert 'set protocols bgp group CarrierA_NL neighbor 198.18.0.73 description "CarrierA"' in lines
-    assert 'set protocols bgp group CarrierB_NL neighbor 198.18.0.23 description "CarrierB_A"' in lines
+    # transit sessions sit in VRF internet (their local/remote address VRF)
+    ri = "set routing-instances internet protocols bgp group"
+    assert f"{ri} CarrierA_NL neighbor 198.18.1.153 peer-as 1299" in lines
+    assert f'{ri} CarrierA_NL neighbor 198.18.1.153 description "CarrierA"' in lines
+    assert f'{ri} CarrierB_NL neighbor 198.18.0.201 description "CarrierB_A"' in lines
+    assert not any(line.startswith("set protocols bgp group CarrierA_NL") for line in lines)
 
 
 def test_access_port_fec_and_vtep_layer2_binding(render, rendered_lines):
@@ -82,7 +85,7 @@ def test_disabled_interface_gets_disabled_marker(render, rendered_lines):
     # " :: DISABLED" suffix. Fixed as part of merging router into the shared
     # common/junos/interfaces/access.j2 partial.
     lines = rendered_lines(render(TEMPLATE, load_context(DEVICE)))
-    assert 'set interfaces et-0/0/6 description "DISABLED"' in lines
+    assert 'set interfaces et-0/0/10 description "DISABLED"' in lines
     assert 'set interfaces et-0/0/22 description "RESERVED FOR TRANSIT :: DISABLED"' in lines
 
 

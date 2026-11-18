@@ -1,0 +1,50 @@
+{# Static routes live inside their VRF's <network-instance> entry (ipi-rib
+   static-routing augment), so this file only provides macros -
+   common/ocnos/routing-instance.j2 imports it and renders the routes into the
+   VRF entries it creates, plus the built-in "default" instance for global routes.
+   A next-hop of 255.255.255.255 in NetBox means a discard route (`null`). #}
+{% import 'common/ocnos/ns.j2' as ns %}
+{# VRF name ('default' = global) -> family -> [(prefix, nexthop)], into `out` #}
+{% macro collect(static_routes, out) %}
+    {% for route in static_routes %}
+        {% set nexthop = "null" if route.next_hop | string == "255.255.255.255" else route.next_hop | string %}
+        {% set family = "ipv6" if ':' in route.prefix | string else "ipv4" %}
+        {% set vrfname = route.vrf.name if (route.vrf is defined and route.vrf != None) else "default" %}
+        {% set _ = out.setdefault(vrfname, {}).setdefault(family, []).append((route.prefix | string, nexthop)) %}
+    {% endfor %}
+{% endmacro %}
+{% macro static_routing(by_family) %}
+      <static-routing xmlns="{{ ns.rib }}">
+    {% for family, entries in by_family.items() %}
+        <{{ family }}>
+        {% for prefix, nexthop in entries %}
+          <static-route>
+            <prefix>{{ prefix | e }}</prefix>
+            <config>
+              <prefix>{{ prefix | e }}</prefix>
+            </config>
+            {% if nexthop == "null" %}
+            <next-hops-interface>
+              <next-hop-interface>
+                <interface>Null</interface>
+                <config>
+                  <interface>Null</interface>
+                </config>
+              </next-hop-interface>
+            </next-hops-interface>
+            {% else %}
+            <next-hops-gateway>
+              <next-hop-gateway>
+                <gateway>{{ nexthop | e }}</gateway>
+                <config>
+                  <gateway>{{ nexthop | e }}</gateway>
+                </config>
+              </next-hop-gateway>
+            </next-hops-gateway>
+            {% endif %}
+          </static-route>
+        {% endfor %}
+        </{{ family }}>
+    {% endfor %}
+      </static-routing>
+{% endmacro %}

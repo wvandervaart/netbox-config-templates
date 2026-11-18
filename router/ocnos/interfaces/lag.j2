@@ -1,0 +1,32 @@
+{# LAG members + bundle description. OcNOS rejects an MTU on a poN ("MTU is not
+   allowed on this interface") - the bundle inherits it from its members, so the
+   LAG's NetBox MTU is set on every member instead. Addressing on the bundle (poN)
+   comes from routed.j2 like any other L3 port, 802.1Q mode from switchport.j2;
+   both also set its description, so the bare description here is only for
+   bundles neither of them covers.
+   collect() fills the per-interface dict router/ocnos/interfaces/main.j2 serializes. #}
+{% import 'common/ocnos/interfaces/description.j2' as d %}
+{% set mapping = ({"1000base-t":"1g","25gbase-x-sfp28":"25g","10gbase-x-sfpp":"10g","100gbase-x-qsfp28":"100g"}) %}
+{% macro collect(interface, cfg) %}
+    {% if interface.enabled == true %}
+        {% if interface.lag is defined and interface.lag != None %}
+            {% set description = d.describe(interface) %}
+            {% if description != "" %}
+                {% set _ = cfg.update({"description": interface.lag.name ~ " :: " ~ description}) %}
+            {% endif %}
+            {% set _ = cfg.update({"channel_group": interface.lag.name | replace("po", "")}) %}
+            {% if interface.lag.mtu is defined and interface.lag.mtu | int > 0 %}
+                {% set _ = cfg.update({"mtu": interface.lag.mtu}) %}
+            {% endif %}
+            {% if "none" in (interface.cf.get('FEC') or []) %}
+                {% set _ = cfg.update({"fec_off": True}) %}
+            {% endif %}
+            {% if mapping.get(interface.type) == "25g" %}
+                {% set _ = cfg.update({"speed": "25g"}) %}
+            {% endif %}
+        {% endif %}
+        {% if interface.type == "lag" and interface.description != "" and not interface.mode and not interface.ip_addresses.all() | list %}
+            {% set _ = cfg.update({"description": interface.description}) %}
+        {% endif %}
+    {% endif %}
+{% endmacro %}

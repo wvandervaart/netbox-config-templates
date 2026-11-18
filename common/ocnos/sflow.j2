@@ -1,0 +1,45 @@
+{% import 'common/ocnos/ns.j2' as ns %}
+{% if sflow is defined and 'interfaces' in sflow %}
+<sampling xmlns="{{ ns.sflow }}">
+  <sflow>
+    <config>
+      <enabled/>
+    </config>
+    <collectors>
+      <collector>
+        <address>{{ sflow.collector | e }}</address>
+        <port>{{ sflow.port }}</port>
+        <collector-id>1</collector-id>
+        <config>
+          <address>{{ sflow.collector | e }}</address>
+          <port>{{ sflow.port }}</port>
+          <collector-id>1</collector-id>
+          <vrf-name>management</vrf-name>
+        </config>
+      </collector>
+    </collectors>
+    <interfaces xmlns="{{ ns.sflow_if }}">
+    {% for interface in sflow.interfaces %}
+      <interface>
+        <name>{{ interface | e }}</name>
+        <config>
+          <name>{{ interface | e }}</name>
+          <enabled/>
+        </config>
+        <samplings>
+          <sampling>
+            <sampling-direction>ingress</sampling-direction>
+            <config>
+              <sampling-direction>ingress</sampling-direction>
+              <rate>32768</rate>
+              {# required with a rate; 128 bytes is the sFlow-standard header size (the model's default is 16) #}
+              <max-header-size>128</max-header-size>
+            </config>
+          </sampling>
+        </samplings>
+      </interface>
+    {% endfor %}
+    </interfaces>
+  </sflow>
+</sampling>
+{% endif %}

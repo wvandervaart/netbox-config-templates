@@ -1,0 +1,30 @@
+{# Junos Evo breakout ports. NetBox models a channelized port as a parent
+   (et-0/0/0) plus channel interfaces et-0/0/0:0..:N whose `parent` points at it
+   and whose `type` is the channel speed. A channel is an interface whose name
+   has a ':' and no '.' (et-0/0/0:1.100 is a sub-interface of a channel, not a
+   channel). The channel count is max(index)+1, so a partially modeled breakout
+   still gets the right sub-port count. Channels themselves render through the
+   normal interface partials; access.j2/lag.j2 skip the parent. #}
+{% set mapping = {
+    "10gbase-x-sfpp":    "10g",
+    "25gbase-x-sfp28":   "25g",
+    "50gbase-x-sfp56":   "50g",
+    "100gbase-x-qsfp28": "100g",
+    "200gbase-x-qsfp56": "200g"
+} %}
+{% set breakouts = {} %}
+{% for interface in device_interfaces %}
+    {% if ':' in interface.name and '.' not in interface.name %}
+        {% set parent = interface.parent.name if interface.parent else interface.name.split(':')[0] %}
+        {% set index = interface.name.split(':')[1] | int %}
+        {% set entry = breakouts.setdefault(parent, {"count": 0, "type": interface.type}) %}
+        {% if index + 1 > entry["count"] %}
+            {% set _ = entry.update({"count": index + 1}) %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+{% for parent, entry in breakouts.items() %}
+    {% if entry["type"] in mapping %}
+set interfaces {{ parent }} number-of-sub-ports {{ entry["count"] }} speed {{ mapping[entry["type"]] }}
+    {% endif %}
+{% endfor %}

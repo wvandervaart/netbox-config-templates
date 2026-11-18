@@ -1,0 +1,40 @@
+{# L2 ports: anything with a NetBox 802.1Q mode joins bridge 1 (created, with its
+   VLANs, by common/ocnos/vlan.j2). vlanB.V SVIs also carry a mode in NetBox but
+   are L3 - routed.j2 handles them. LAG members are skipped: their bundle (poN)
+   carries the mode and gets the switchport config instead.
+   collect() fills the per-interface dict router/ocnos/interfaces/main.j2 serializes. #}
+{% import 'common/ocnos/interfaces/description.j2' as d %}
+{% macro collect(interface, cfg) %}
+    {% if interface.enabled == true and interface.mode and interface.lag == None and not interface.name.startswith('vlan') %}
+        {% set description = d.describe(interface, cable_label=False) %}
+        {% if description != "" %}
+            {% set _ = cfg.update({"description": description}) %}
+        {% endif %}
+        {% if interface.mtu is defined and interface.mtu | int > 0 and interface.type != "lag" %}
+            {% set _ = cfg.update({"mtu": interface.mtu}) %}
+        {% endif %}
+        {% set sw = {"mode": "access" if interface.mode == 'access' else "trunk"} %}
+        {% if interface.mode == 'access' %}
+            {% if interface.untagged_vlan != None %}
+                {% set _ = sw.update({"access_vlan": interface.untagged_vlan.vid}) %}
+            {% endif %}
+        {% else %}
+            {% if interface.mode == 'tagged-all' %}
+                {% set _ = sw.update({"allowed_all": True}) %}
+            {% else %}
+                {# OcNOS only accepts a native VLAN that is also allowed on the trunk
+                   ("Port not a member of VLAN") - NetBox keeps the untagged VLAN out of
+                   the tagged list, so it's added here #}
+                {% set allowed = interface.tagged_vlans.all() | map(attribute='vid') | list %}
+                {% if interface.untagged_vlan != None %}
+                    {% set allowed = allowed + [interface.untagged_vlan.vid] %}
+                {% endif %}
+                {% set _ = sw.update({"allowed": allowed | unique | sort | list}) %}
+            {% endif %}
+            {% if interface.untagged_vlan != None %}
+                {% set _ = sw.update({"native_vlan": interface.untagged_vlan.vid}) %}
+            {% endif %}
+        {% endif %}
+        {% set _ = cfg.update({"switchport": sw}) %}
+    {% endif %}
+{% endmacro %}

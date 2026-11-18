@@ -1,0 +1,56 @@
+{# NETCONF payload: one <config> document for edit-config (default-operation merge,
+   i.e. additive like the CLI it replaced). Element paths follow the OcNOS ipi-*
+   YANG modules - see common/ocnos/ns.j2.
+
+   Size: the document is rendered into a capture and emitted minified (every line
+   trimmed, blank lines dropped, joined onto one line), so indentation and the
+   whitespace the block tags leave behind never reach the device. Set
+   `netconf_pretty: true` (config-context or render-config request body) to get the
+   indented version for reading.
+
+   Sections: `netconf_sections` (a list, same two places) renders only those
+   top-level sections, so a large config can be loaded as several smaller
+   edit-config + commit transactions - in this order, since later sections
+   reference earlier ones (interfaces -> VRFs, BGP -> route-maps/VRFs, ...; bridge-port
+   membership moves into the interfaces section when the two are split):
+     system, management, snmp, network-instances, interfaces, ospf, sflow, bgp, manual
+   Unset = all sections. #}
+{% import 'common/ocnos/ns.j2' as ns %}
+{% set sections = netconf_sections if netconf_sections is defined and netconf_sections else
+    ['system', 'management', 'snmp', 'network-instances', 'interfaces', 'ospf', 'sflow', 'bgp', 'manual'] %}
+{# fetched once and reused by every include below - avoids re-querying + N+1 lookups per partial #}
+{% set device_interfaces = device.interfaces.all().select_related('vrf', 'lag', 'untagged_vlan').prefetch_related('tagged_vlans', 'tags', 'ip_addresses', '_path', 'cable__terminations') | list %}
+{% set payload %}
+<config xmlns="{{ ns.netconf }}">
+{% if 'system' in sections %}{% include 'common/ocnos/system.j2' %}{% endif %}
+{% if 'management' in sections %}{% include 'router/ocnos/system.j2' %}{% endif %}
+{% if 'snmp' in sections %}{% include 'common/ocnos/snmp.j2' %}{% endif %}
+{% if 'network-instances' in sections %}
+{# one container for every network-instance: VRFs (with their static routes) and bridge 1 #}
+{% set bridge_mode = "full" if 'interfaces' in sections else "no-ports" %}
+<network-instances xmlns="{{ ns.network_instance }}">
+{% include 'common/ocnos/routing-instance.j2' %}
+{% include 'common/ocnos/vlan.j2' %}
+</network-instances>
+{% endif %}
+{% if 'interfaces' in sections %}
+{% include 'router/ocnos/interfaces/main.j2' %}
+{# loaded without network-instances: the bridge-ports join here, after enable-switchport #}
+{% if 'network-instances' not in sections %}
+{% set bridge_mode = "ports-only" %}
+<network-instances xmlns="{{ ns.network_instance }}">
+{% include 'common/ocnos/vlan.j2' %}
+</network-instances>
+{% endif %}
+{% endif %}
+{% if 'ospf' in sections %}{% include 'common/ocnos/ospf.j2' %}{% endif %}
+{% if 'sflow' in sections %}{% include 'common/ocnos/sflow.j2' %}{% endif %}
+{% if 'bgp' in sections %}{% include 'router/ocnos/bgp/main.j2' %}{% endif %}
+{% if 'manual' in sections %}{% include 'common/ocnos/manual_config.j2' %}{% endif %}
+</config>
+{% endset %}
+{% if netconf_pretty is defined and netconf_pretty %}
+{{ payload }}
+{% else %}
+{{ payload.split('\n') | map('trim') | reject('equalto', '') | join('') }}
+{% endif %}

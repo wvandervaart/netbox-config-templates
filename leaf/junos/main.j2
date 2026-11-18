@@ -3,7 +3,7 @@
 {# device-scope maintenance flag - kept in sync with the identical copies in the other 3 junos mains #}
 {% set is_maintenance = "maintenance" in device.tags.names() %}
 {# site-scoped maintenance VLAN - kept in sync with the identical copies in the other 4 junos mains #}
-{% set maintenance_vlan = ipam.VLAN.objects.filter(site=device.site, tags__name='maintenance').first() %}
+{% set maintenance_vlan = ipam.VLAN.objects.filter(tags__name='maintenance').first() %}
 {# ESI custom objects (netbox_custom_objects plugin) link an ethernet-segment to the interfaces sharing it - map interface.id -> esi object once here, same rationale as device_interfaces above #}
 {% set esi_model = netbox_custom_objects.CustomObjectType.objects.get(name='esi').get_model() %}
 {% set esi_by_interface = {} %}

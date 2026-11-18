@@ -1,0 +1,523 @@
+{# Route-maps for every policy referenced by a BGP session / peer-group, translated
+   from the Junos-flavoured netbox-bgp data. OcNOS route-map entries AND their
+   match clauses, and an entry with no match clause matches EVERY route - so any
+   Junos match with no OcNOS equivalent must fail closed (PL_MATCH_NONE) rather
+   than be dropped, or a `deny` rejects everything / a `permit` leaks everything.
+
+   - Sequence: rule index i -> seq (i+1)*100, leaving room for expansion below.
+   - `from policy X` (match_custom "policy"): Junos evaluates X as a subroutine.
+     OcNOS has none, so the rule is expanded into one entry per *permit* rule of
+     X (seq (i+1)*100 + n), each ANDing the rule's own matches with that X rule's
+     matches. X's deny rules drop out (Junos: subroutine rejects -> term doesn't
+     match). X's own set-actions are not applied - only the calling rule's.
+   - route-filter: one generated prefix-list per entry (<policy>_<seq>, plus
+     <policy>_<seq>_V6 for IPv6), one seq per route-filter; Junos match-types
+     exact/orlonger/longer/upto/prefix-length-range/address-mask are mapped to
+     ge/le, anything else fails closed.
+   - pl_match_type orlonger/longer on a prefix-list match: Junos
+     prefix-list-filter - rendered as a derived <list>_ORLONGER/_LONGER list.
+   - family inet/inet6 -> PL_ANY_V4/PL_ANY_V6; protocol, as-path-group and
+     anything unknown -> fail closed (OcNOS route-maps have no source-protocol
+     match; protocol filtering is `redistribute <proto> route-map X` instead).
+     Exception: `protocol bgp` in a policy used only as an import policy is
+     always true (everything arriving on a BGP session is BGP) - it's dropped
+     as a condition there. A policy used for both import and export keeps
+     failing closed, since one route-map can't mean both.
+   - as-path lists: Junos AS-path regexes are AS-number-tokenised, OcNOS ones are
+     strings - only `.*ASN`, `ASN.*` and plain AS sequences translate (to
+     `_ASN$`, `^ASN_`, ...), other patterns are skipped; a list left with no
+     entries fails closed.
+   - set community add|set NAME...: NAME resolved via netbox-bgp Community
+     description -> value, or a well-known name; unresolved names are skipped
+     with a comment.
+   - set next-hop self is a neighbor option on OcNOS - router/ocnos/bgp/bgp.j2
+     renders `next-hop-self` for peer-groups exporting through such a policy.
+   - one IPv4 + one IPv6 prefix-list and one as-path list per entry (the model's
+     limit): a redundant PL_ANY_Vx is dropped, any other AND of several fails closed.
+   - Output is NETCONF XML (ipi-prefix-list / ipi-routemap / ipi-bgp, see
+     common/ocnos/ns.j2): the route-maps are rendered into a capture first, since
+     doing so is what discovers the generated/derived prefix-lists; then one
+     <prefixes> container (NetBox lists via common/ocnos/bgp/prefix-list.j2 + the
+     generated ones), <routemaps>, and the one <bgp> container holding the as-path
+     lists and - via ocnos_bgp_role_partial - the BGP instance. A reason an entry
+     failed closed or skipped a set-action is an XML comment above that entry. #}
+{% import 'common/ocnos/ns.j2' as ns %}
+{% import 'common/ocnos/bgp/xml.j2' as x %}
+{# -- Collect directly referenced policies, and which direction each is used in #}
+{% set pols = [] %}
+{% set direction = {} %}
+{% for peer in bgp_sessions %}
+    {% for policy_set, dir in [
+        (peer.import_policies.all(), "import"),
+        (peer.peer_group.import_policies.all(), "import"),
+        (peer.export_policies.all(), "export"),
+        (peer.peer_group.export_policies.all(), "export")
+    ] %}
+        {% for policy in policy_set %}
+            {% if policy not in pols %}
+                {% set _ = pols.append(policy) %}
+            {% endif %}
+            {% set _ = direction.update({policy.name: dir if direction.get(policy.name, dir) == dir else "both"}) %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+{# -- Lookups, each fetched once --------------------------------------------- #}
+{% set all_policies_by_name = {} %}
+{% for rp in netbox_bgp.RoutingPolicy.objects.all().prefetch_related(
+    'rules__match_ip_address', 'rules__match_ipv6_address',
+    'rules__match_community', 'rules__match_aspath_list'
+) %}
+    {% set _ = all_policies_by_name.setdefault(rp.name, rp) %}
+{% endfor %}
+{% set community_values = {} %}
+{% for c in netbox_bgp.Community.objects.all() %}
+    {% set _ = community_values.setdefault(c.description, c.value) %}
+{% endfor %}
+{% set well_known_communities = {"NO_EXPORT": "no-export", "NO_ADVERTISE": "no-advertise", "NO_EXPORT_SUBCONFED": "local-AS"} %}
+{% set aspath_rules = {} %}
+{% for r in netbox_bgp.ASPathListRule.objects.all() %}
+    {% set _ = aspath_rules.setdefault(r.aspath_list.id, []).append(r) %}
+{% endfor %}
+{% set default_prepend = device.cf.DEFAULT_AS_PREPEND or 0 %}
+{% set mask_bits = {255: 8, 254: 7, 252: 6, 248: 5, 240: 4, 224: 3, 192: 2, 128: 1, 0: 0} %}
+{# -- State filled while rendering, emitted at the end ------------------------ #}
+{% set flags = {} %}
+{% set generated = [] %}
+{% set derived = {} %}
+{% set used_aspath_lists = {} %}
+{% set aspath_values = [] %}
+{# -- Helpers ---------------------------------------------------------------- #}
+{# Junos AS-path regex -> OcNOS, or "" if it can't be translated #}
+{% macro aspath_regex(pattern) -%}
+    {%- set p = pattern | trim -%}
+    {%- set lead = p.startswith('.*') -%}
+    {%- set trail = p.endswith('.*') and p != '.*' -%}
+    {%- set core = (p[2:] if lead else p) -%}
+    {%- set core = (core[:-2] if trail else core) | trim -%}
+    {%- if core and core.replace(' ', '').isdigit() -%}
+        {{- ('_' if lead else '^') ~ (core.split() | join('_')) ~ ('_' if trail else '$') -}}
+    {%- endif -%}
+{%- endmacro %}
+{# a route-filter as a prefix-list entry {"prefix", "ge", "le"} appended to `entries`,
+   or a reason appended to `reasons` #}
+{% macro route_filter(mc, entries, reasons) %}
+    {% set prefix = mc.prefix | string %}
+    {% set maxlen = 128 if ':' in prefix else 32 %}
+    {% set net = prefix.split('/')[0] %}
+    {% set plen = prefix.split('/')[1] | int if '/' in prefix else maxlen %}
+    {% set mt = mc.get('match-type') or 'exact' %}
+    {% set value = (mc.get('value') or '') | string %}
+    {% if mt == 'exact' %}
+        {% set _ = entries.append({"prefix": prefix}) %}
+    {% elif mt == 'orlonger' %}
+        {% set _ = entries.append({"prefix": prefix, "le": maxlen if plen < maxlen else none}) %}
+    {% elif mt == 'longer' %}
+        {% if plen < maxlen %}
+            {% set _ = entries.append({"prefix": prefix, "ge": plen + 1, "le": maxlen}) %}
+        {% endif %}
+    {% elif mt == 'upto' and value.startswith('/') %}
+        {% set hi = value[1:] | int %}
+        {% set _ = entries.append({"prefix": prefix, "le": hi if hi > plen else none}) %}
+    {% elif mt == 'prefix-length-range' and value.startswith('/') and '-/' in value %}
+        {% set lo = value[1:].split('-/')[0] | int %}
+        {% set hi = value.split('-/')[1] | int %}
+        {% if lo > plen %}
+            {% set _ = entries.append({"prefix": prefix, "ge": lo, "le": hi}) %}
+        {% else %}
+            {% set _ = entries.append({"prefix": prefix, "le": hi if hi > plen else none}) %}
+        {% endif %}
+    {% elif mt == 'address-mask' and maxlen == 32 and value.count('.') == 3 %}
+        {# contiguous masks only: route address & mask == prefix & mask, route
+           length == prefix length -> <prefix & mask>/<mask len> ge/le <plen> #}
+        {% set st = namespace(ok=True, bits=0, done=False, octets=[]) %}
+        {% for m in value.split('.') | map('int') %}
+            {% set b = mask_bits.get(m) %}
+            {% if b is none or (st.done and b > 0) %}
+                {% set st.ok = False %}
+            {% else %}
+                {% set a = net.split('.')[loop.index0] | int %}
+                {% set st.octets = st.octets + [a - (a % (256 // (2 ** b)))] %}
+                {% set st.bits = st.bits + b %}
+                {% set st.done = st.done or b < 8 %}
+            {% endif %}
+        {% endfor %}
+        {% if st.ok and st.bits == plen %}
+            {% set _ = entries.append({"prefix": prefix}) %}
+        {% elif st.ok and st.bits < plen %}
+            {% set _ = entries.append({"prefix": (st.octets | join('.')) ~ "/" ~ st.bits, "ge": plen, "le": plen}) %}
+        {% else %}
+            {% set _ = reasons.append("route-filter " ~ prefix ~ " address-mask " ~ value ~ " not translatable") %}
+        {% endif %}
+    {% else %}
+        {% set _ = reasons.append("route-filter " ~ prefix ~ " " ~ mt ~ " " ~ value ~ " not translatable") %}
+    {% endif %}
+{% endmacro %}
+{% macro pl_name(pl, mode) -%}
+    {%- if mode in ('orlonger', 'longer') -%}
+        {%- set name = pl.name ~ "_" ~ (mode | upper) -%}
+        {%- set _ = derived.setdefault(name, {"pl": pl, "mode": mode}) -%}
+        {{- name -}}
+    {%- else -%}
+        {{- pl.name -}}
+    {%- endif -%}
+{%- endmacro %}
+{# All of one rule's match clauses, collected into `m` {ipv4, ipv6, community,
+   aspath: [names], fail: bool} - entry() turns them into the route-map entry.
+   `pfx` names its generated route-filter prefix-list(s); `expanding` skips the
+   "policy" match being expanded; `import_only` makes `protocol bgp` always true. #}
+{% macro rule_matches(rule, pfx, reasons, m, expanding=False, import_only=False) %}
+    {% set custom = rule.match_custom if (rule.match_custom is defined and rule.match_custom is iterable and rule.match_custom is not string and rule.match_custom is not mapping) else [] %}
+    {% set st = namespace(mode="", had_rf=False) %}
+    {% for mc in custom if mc is mapping and mc.pl_match_type is defined %}
+        {% set st.mode = mc.pl_match_type %}
+    {% endfor %}
+    {% if rule.match_ip_address is defined %}
+        {% for pl in rule.match_ip_address.all() %}
+            {% set _ = m.ipv4.append(pl_name(pl, st.mode) | string) %}
+        {% endfor %}
+    {% endif %}
+    {% if rule.match_ipv6_address is defined %}
+        {% for pl in rule.match_ipv6_address.all() %}
+            {% set _ = m.ipv6.append(pl_name(pl, st.mode) | string) %}
+        {% endfor %}
+    {% endif %}
+    {% if rule.match_community is defined %}
+        {% for comm in rule.match_community.all() %}
+            {% set _ = m.community.append(comm.description) %}
+        {% endfor %}
+    {% endif %}
+    {% if rule.match_aspath_list is defined %}
+        {% for al in rule.match_aspath_list.all() %}
+            {% set usable = aspath_rules.get(al.id, []) | map(attribute='pattern') | map('string') | select('ne', '') | list %}
+            {% set translated = [] %}
+            {% for p in usable %}
+                {% if aspath_regex(p) %}
+                    {% set _ = translated.append(p) %}
+                {% endif %}
+            {% endfor %}
+            {% if translated %}
+                {% set _ = used_aspath_lists.setdefault(al.id, al) %}
+                {% set _ = m.aspath.append(al.name) %}
+            {% else %}
+                {% set _ = reasons.append("as-path list " ~ al.name ~ " has no translatable pattern") %}
+                {% set _ = m.update({"fail": True}) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% set rf4 = [] %}
+    {% set rf6 = [] %}
+    {% for mc in custom if mc is mapping and mc.name is defined %}
+        {% if mc.name == "route-filter" %}
+            {% set st.had_rf = True %}
+            {{- route_filter(mc, rf6 if ':' in mc.prefix | string else rf4, reasons) -}}
+        {% elif mc.name == "as-path" %}
+            {% set _ = aspath_values.append(mc.value) %}
+            {% set _ = m.aspath.append(mc.value | string) %}
+        {% elif mc.name == "family" and mc.value in ("inet", "inet6") %}
+            {% set _ = flags.update({"any_v6" if mc.value == "inet6" else "any_v4": True}) %}
+            {% set _ = (m.ipv6 if mc.value == "inet6" else m.ipv4).append('PL_ANY_V6' if mc.value == 'inet6' else 'PL_ANY_V4') %}
+        {% elif mc.name == "policy" and expanding %}
+        {% elif mc.name == "protocol" and mc.value == "bgp" and import_only %}
+        {% else %}
+            {% set _ = reasons.append(mc.name ~ " " ~ (mc.value or mc.prefix or "") ~ " has no OcNOS route-map equivalent") %}
+            {% set _ = m.update({"fail": True}) %}
+        {% endif %}
+    {% endfor %}
+    {% if rf4 %}
+        {% set _ = generated.append({"afi": "ip", "name": pfx, "entries": rf4}) %}
+        {% set _ = m.ipv4.append(pfx) %}
+    {% endif %}
+    {% if rf6 %}
+        {% set _ = generated.append({"afi": "ipv6", "name": pfx ~ "_V6", "entries": rf6}) %}
+        {% set _ = m.ipv6.append(pfx ~ "_V6") %}
+    {% endif %}
+    {% if st.had_rf and not rf4 and not rf6 %}
+        {% set _ = m.update({"fail": True}) %}
+    {% endif %}
+{% endmacro %}
+{# One rule's set-actions, collected into `s` {config: [(leaf, value)], ipv4, ipv6,
+   communities: [values], community_flags: [leaf], additive} #}
+{% set generic_sets = {"local-preference": "local-preference", "metric": "metric-value", "med": "metric-value",
+                       "weight": "weight", "tag": "route-tag", "origin": "route-origin-type"} %}
+{% set well_known_flags = {"no-export": "enable-no-export", "no-advertise": "enable-no-advertise", "local-AS": "enable-local-as"} %}
+{% macro rule_sets(rule, reasons, s) %}
+    {% set actionss = rule.set_actions if (rule.set_actions is iterable and rule.set_actions is not string and rule.set_actions is not mapping) else [rule.set_actions] %}
+    {% for actions in actionss if actions is mapping %}
+        {% if actions.name in ("as-path-prepend", "as-path prepend") %}
+            {% set prepend = ([bgp.asn | string] * default_prepend) | join(" ") if actions.action == "default" else actions.action %}
+            {% if prepend %}
+                {% set _ = s.config.append(("as-path-prepend", prepend)) %}
+            {% endif %}
+        {% elif actions.name == "next-hop" %}
+            {% if actions.action != "self" %}
+                {% set _ = s.update({('ipv6' if ':' in actions.action | string else 'ipv4'): actions.action | string}) %}
+            {% endif %}
+        {% elif actions.name in ("community add", "community set", "community") %}
+            {% for name in actions.action.split() %}
+                {% if name in community_values %}
+                    {% set _ = s.communities.append(community_values[name]) %}
+                {% elif name in well_known_communities %}
+                    {% set _ = s.community_flags.append(well_known_flags[well_known_communities[name]]) %}
+                {% elif ':' in name %}
+                    {% set _ = s.communities.append(name) %}
+                {% else %}
+                    {% set _ = reasons.append("community " ~ name ~ " not found in NetBox - not set") %}
+                {% endif %}
+            {% endfor %}
+            {% if actions.name == 'community add' %}
+                {% set _ = s.update({"additive": True}) %}
+            {% endif %}
+        {% elif actions.name.startswith("community") %}
+            {% set _ = reasons.append(actions.name ~ " " ~ actions.action ~ " not supported - not set") %}
+        {% elif actions.name in generic_sets %}
+            {% set _ = s.config.append((generic_sets[actions.name], actions.action | string)) %}
+        {% else %}
+            {% set _ = reasons.append("set " ~ actions.name ~ " " ~ actions.action ~ " has no OcNOS route-map equivalent - not set") %}
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+{# A route-map entry. An OcNOS entry holds one IPv4 and one IPv6 prefix-list and
+   one as-path list: a redundant PL_ANY_Vx next to another list of its family is
+   dropped, any other combination of several fails closed, as does a failed match
+   (PL_MATCH_NONE / PL_MATCH_NONE_V6, which together match no route). #}
+{% macro entry(stmt, action, seq, m, s, reasons) %}
+    {% set v4 = m.ipv4 | unique | list %}
+    {% set v6 = m.ipv6 | unique | list %}
+    {% set v4 = v4 | reject('equalto', 'PL_ANY_V4') | list if v4 | length > 1 else v4 %}
+    {% set v6 = v6 | reject('equalto', 'PL_ANY_V6') | list if v6 | length > 1 else v6 %}
+    {% set aspaths = m.aspath | unique | list %}
+    {% set st = namespace(fail=m.fail) %}
+    {% for kind, names in [("IPv4 prefix-lists", v4), ("IPv6 prefix-lists", v6), ("as-path lists", aspaths)] if names | length > 1 and not m.fail %}
+        {% set _ = reasons.append("several " ~ kind ~ " (" ~ names | join(", ") ~ ") ANDed in one entry - not representable") %}
+        {% set st.fail = True %}
+    {% endfor %}
+    {% if st.fail %}
+        {% set _ = flags.update({"none": True}) %}
+        {% set v4, v6, aspaths, communities = ["PL_MATCH_NONE"], ["PL_MATCH_NONE_V6"], [], [] %}
+    {% else %}
+        {% set communities = m.community | unique | list %}
+    {% endif %}
+    {% for reason in reasons %}
+  {{ x.comment(stmt ~ " " ~ seq ~ ": " ~ reason) }}
+    {% endfor %}
+  <routemap>
+    <routemap-name>{{ stmt | e }}</routemap-name>
+    <sequence-id>{{ seq }}</sequence-id>
+    <config>
+      <routemap-name>{{ stmt | e }}</routemap-name>
+      <action>{{ action | e }}</action>
+      <sequence-id>{{ seq }}</sequence-id>
+    </config>
+    {% if v4 or v6 or aspaths or communities %}
+    <match-condition>
+        {% if aspaths %}
+      <config>
+        <as-path-name>{{ aspaths[0] | e }}</as-path-name>
+      </config>
+        {% endif %}
+        {% if communities %}
+      <communities>
+            {% for c in communities %}
+        <community>
+          <community-identifier>{{ c | e }}</community-identifier>
+          <config>
+            <community-identifier>{{ c | e }}</community-identifier>
+            <match-type>no-exact-match</match-type>
+          </config>
+        </community>
+            {% endfor %}
+      </communities>
+        {% endif %}
+        {% if v4 %}
+      <ipv4>
+        <config>
+          <ip-prefix-list-name>{{ v4[0] | e }}</ip-prefix-list-name>
+        </config>
+      </ipv4>
+        {% endif %}
+        {% if v6 %}
+      <ipv6>
+        <config>
+          <ipv6-prefix-list-name>{{ v6[0] | e }}</ipv6-prefix-list-name>
+        </config>
+      </ipv6>
+        {% endif %}
+    </match-condition>
+    {% endif %}
+    {% if s.config or s.ipv4 or s.ipv6 or s.communities or s.community_flags %}
+    <set-action>
+        {% if s.config %}
+      <config>
+            {% for leaf, value in s.config %}
+        <{{ leaf }}>{{ value | e }}</{{ leaf }}>
+            {% endfor %}
+      </config>
+        {% endif %}
+        {% if s.ipv4 %}
+      <ipv4>
+        <config>
+          <ip-nexthop-address>{{ s.ipv4 | e }}</ip-nexthop-address>
+        </config>
+      </ipv4>
+        {% endif %}
+        {% if s.ipv6 %}
+      <ipv6>
+        <config>
+          <ipv6-nexthop-address>{{ s.ipv6 | e }}</ipv6-nexthop-address>
+        </config>
+      </ipv6>
+        {% endif %}
+        {% if s.communities or s.community_flags %}
+      <communities>
+        <config>
+            {% for leaf in s.community_flags | unique %}
+          <{{ leaf }}/>
+            {% endfor %}
+            {% if s.additive %}
+          <additive-set/>
+            {% endif %}
+            {% if s.communities %}
+          <community-number>{{ s.communities | join(' ') | e }}</community-number>
+            {% endif %}
+        </config>
+      </communities>
+        {% endif %}
+    </set-action>
+    {% endif %}
+  </routemap>
+{% endmacro %}
+{# -- Render route-maps (captured - see header) -------------------------------- #}
+{% set route_maps %}
+{% for poli in pols %}
+    {% for rule in poli.rules.all() %}
+        {% set stmt = rule.routing_policy.name %}
+        {% set base = (rule.index + 1) * 100 %}
+        {% set import_only = direction.get(stmt) == "import" %}
+        {% set link = namespace(name=none) %}
+        {% if rule.match_custom is defined and rule.match_custom is iterable and rule.match_custom is not string and rule.match_custom is not mapping %}
+            {% for mc in rule.match_custom if mc is mapping and mc.name == "policy" %}
+                {% set link.name = mc.value %}
+            {% endfor %}
+        {% endif %}
+        {% set linked = all_policies_by_name.get(link.name) if link.name else none %}
+        {% if linked %}
+            {% for lrule in linked.rules.all() | selectattr('action', 'equalto', 'permit') %}
+                {% set seq = base + loop.index %}
+                {% set reasons = [] %}
+                {% set m = {"ipv4": [], "ipv6": [], "community": [], "aspath": [], "fail": False} %}
+                {% set s = {"config": [], "communities": [], "community_flags": []} %}
+                {% set _ = rule_matches(rule, stmt ~ "_" ~ seq, reasons, m, expanding=True, import_only=import_only) %}
+                {% set _ = rule_matches(lrule, stmt ~ "_" ~ seq ~ "_" ~ linked.name, reasons, m, import_only=import_only) %}
+                {% set _ = rule_sets(rule, reasons, s) %}
+{{ entry(stmt, rule.action, seq, m, s, reasons) }}
+            {%- endfor %}
+        {% else %}
+            {% set reasons = [] %}
+            {% set m = {"ipv4": [], "ipv6": [], "community": [], "aspath": [], "fail": False} %}
+            {% set s = {"config": [], "communities": [], "community_flags": []} %}
+            {% set _ = rule_matches(rule, stmt ~ "_" ~ base, reasons, m, import_only=import_only) %}
+            {% set _ = rule_sets(rule, reasons, s) %}
+{{ entry(stmt, rule.action, base, m, s, reasons) }}
+        {%- endif %}
+    {% endfor %}
+{% endfor %}
+{% endset %}
+{# -- Prefix-lists: NetBox ones, then generated/derived/helper lists -------------- #}
+<prefixes xmlns="{{ ns.prefix_list }}">
+{% include 'common/ocnos/bgp/prefix-list.j2' %}
+{% for g in generated %}
+{{ x.prefix_list(g.afi, g.name, g.entries) }}
+{% endfor %}
+{% if derived %}
+    {% set derived_rules = {} %}
+    {% for plr in netbox_bgp.PrefixListRule.objects.filter(prefix_list__in=derived.values() | map(attribute='pl') | list) %}
+        {% set _ = derived_rules.setdefault(plr.prefix_list.id, []).append(plr) %}
+    {% endfor %}
+    {% for name, d in derived.items() %}
+        {% set rules = derived_rules.get(d.pl.id, []) %}
+        {% set is6 = rules and ':' in rules[0].prefix_custom | string %}
+        {% set entries = [] %}
+        {% set seqs = [] %}
+        {% for plr in rules %}
+            {% set prefix = plr.prefix_custom | string %}
+            {% set maxlen = 128 if ':' in prefix else 32 %}
+            {% set plen = prefix.split('/')[1] | int %}
+            {% if d.mode == 'orlonger' %}
+                {% set _ = entries.append({"prefix": prefix, "le": maxlen if plen < maxlen else none}) %}
+                {% set _ = seqs.append(plr.index + 1) %}
+            {% elif plen < maxlen %}
+                {% set _ = entries.append({"prefix": prefix, "ge": plen + 1, "le": maxlen}) %}
+                {% set _ = seqs.append(plr.index + 1) %}
+            {% endif %}
+        {% endfor %}
+{{ x.prefix_list('ipv6' if is6 else 'ip', name, entries, seqs) }}
+    {% endfor %}
+{% endif %}
+{% if flags.any_v4 %}
+{{ x.prefix_list('ip', 'PL_ANY_V4', [{"prefix": "0.0.0.0/0", "le": 32}]) }}
+{% endif %}
+{% if flags.any_v6 %}
+{{ x.prefix_list('ipv6', 'PL_ANY_V6', [{"prefix": "::/0", "le": 128}]) }}
+{% endif %}
+{% if flags.none %}
+{# fail-closed target: matches no route of either family #}
+{{ x.prefix_list('ip', 'PL_MATCH_NONE', [{"action": "deny", "prefix": "0.0.0.0/0", "le": 32}]) }}
+{{ x.prefix_list('ipv6', 'PL_MATCH_NONE_V6', [{"action": "deny", "prefix": "::/0", "le": 128}]) }}
+{% endif %}
+</prefixes>
+{# RM_REDIST_ALL: the model requires a route-map on every `redistribute`
+   (router/ocnos/bgp/bgp.j2, VRF address-families) - one match-less permit entry
+   keeps the CLI's plain `redistribute connected|static` meaning #}
+{% set has_vrf_sessions = bgp_sessions | selectattr('local_address.vrf.name', 'defined') | list %}
+{% if route_maps | trim or has_vrf_sessions %}
+<routemaps xmlns="{{ ns.routemap }}">
+{{ route_maps }}
+    {% if has_vrf_sessions %}
+  <routemap>
+    <routemap-name>RM_REDIST_ALL</routemap-name>
+    <sequence-id>10</sequence-id>
+    <config>
+      <routemap-name>RM_REDIST_ALL</routemap-name>
+      <action>permit</action>
+      <sequence-id>10</sequence-id>
+    </config>
+  </routemap>
+    {% endif %}
+</routemaps>
+{% endif %}
+{# -- AS-path access-lists: (name, regex) ---------------------------------------- #}
+{% set aspath_acls = [] %}
+{% for aspath in aspath_values | unique %}
+    {% set _ = aspath_acls.append((aspath | string, "_" ~ aspath ~ "_")) %}
+{% endfor %}
+{% for al in used_aspath_lists.values() %}
+    {% for r in aspath_rules.get(al.id, []) %}
+        {% set regex = aspath_regex(r.pattern | string) %}
+        {% if regex and (al.name, regex) not in aspath_acls %}
+            {% set _ = aspath_acls.append((al.name, regex)) %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{# The one <bgp> container: as-path lists (bgp/global) + the role's BGP instance,
+   rendered by ocnos_bgp_role_partial inside it (see common/ocnos/bgp/main.j2) #}
+<bgp xmlns="{{ ns.bgp }}">
+{% if aspath_acls %}
+  <global>
+    <as-path-access-lists>
+    {% for name, regex in aspath_acls %}
+      <as-path-access-list>
+        <access-list-name>{{ name | e }}</access-list-name>
+        <access-list-action>permit</access-list-action>
+        <access-list-regular-expression>{{ regex | e }}</access-list-regular-expression>
+        <config>
+          <access-list-name>{{ name | e }}</access-list-name>
+          <access-list-action>permit</access-list-action>
+          <access-list-regular-expression>{{ regex | e }}</access-list-regular-expression>
+        </config>
+      </as-path-access-list>
+    {% endfor %}
+    </as-path-access-lists>
+  </global>
+{% endif %}
+{% include ocnos_bgp_role_partial %}
+</bgp>

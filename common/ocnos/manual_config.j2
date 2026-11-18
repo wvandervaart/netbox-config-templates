@@ -1,0 +1,19 @@
+{# group_config / manual_config come from config-context as a list of lines. Only
+   XML snippets (starting with `<`) can go into a NETCONF payload - they are emitted
+   verbatim, so they must be well-formed and carry their own ipi-* xmlns. Anything
+   else is a leftover CLI line and is kept visible as a comment, not applied. #}
+{% macro emit(lines) %}
+    {% for line in lines %}
+        {% if line | string | trim | first == "<" %}
+{{ line }}
+        {% else %}
+<!-- skipped CLI line (not XML): {{ (line | string).replace('--', '- ') | e }} -->
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+{% if group_config is defined %}
+{{ emit(group_config) }}
+{% endif %}
+{% if manual_config is defined %}
+{{ emit(manual_config) }}
+{% endif %}

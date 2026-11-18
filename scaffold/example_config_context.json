@@ -69,9 +69,11 @@
         "pubkeytype": "ssh-ed25519",
         "passwd": "EXAMPLE-REPLACE-ME-$6$encrypted",
         "arista_pw": "EXAMPLE-REPLACE-ME",
+        "ocnos_pw": "EXAMPLE-REPLACE-ME-ocnos-encrypted-hash",
         "systems": [
           { "_name": "junos", "class": "super-user" },
-          { "_name": "arista", "class": "network-admin" }
+          { "_name": "arista", "class": "network-admin" },
+          { "_name": "ocnos", "class": "network-admin" }
         ]
       }
     ]

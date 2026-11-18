@@ -5,6 +5,7 @@ Not a NetBox client and not exhaustive - only implements what the spine/junos
 templates (and the common/junos partials they include) read, so it stays
 readable rather than trying to model the whole data model.
 """
+import ipaddress
 import types
 
 
@@ -89,8 +90,9 @@ class FakePolicy:
     walked via `.rules.all()`. Equality is by name (like a Django model's
     pk-based equality) so the same policy referenced from two places - e.g. a
     peer-group's export_policies and a VRF's VNI export policy - dedupes
-    correctly. `.rules` is always empty here: we don't snapshot policy rule
-    bodies, only which policies are referenced.
+    correctly. `.rules` is empty unless given: snapshots taken before
+    routing_policies was captured only record which policies are referenced
+    (see netbox_snapshot._build_routing_policies()).
     """
 
     def __init__(self, name, rules=None, tags=None):
@@ -155,10 +157,12 @@ class FakePrefixList:
 class FakePrefixListRule:
     """A `netbox_bgp.PrefixListRule` lookalike."""
 
-    def __init__(self, prefix_list, index, prefix_custom, le=None, ge=None):
+    def __init__(self, prefix_list, index, prefix_custom, le=None, ge=None, prefix=None, action="permit"):
         self.prefix_list = prefix_list
         self.index = index
         self.prefix_custom = prefix_custom
+        self.prefix = prefix
+        self.action = action
         self.le = le
         self.ge = ge
 
@@ -225,11 +229,13 @@ class FakeCF:
 
 
 class IPValue:
-    """Mimics a NetBox IPAddress.address (netaddr-ish): str() is 'a.b.c.d/nn', .ip is 'a.b.c.d'."""
+    """Mimics a NetBox IPAddress.address (netaddr-ish): str() is 'a.b.c.d/nn', .ip is 'a.b.c.d',
+    .cidr is the containing network ('a.b.c.0/nn', like netaddr.IPNetwork.cidr)."""
 
     def __init__(self, cidr):
         self._cidr = cidr
         self.ip = cidr.split("/")[0]
+        self.cidr = str(ipaddress.ip_interface(cidr).network)
 
     def __str__(self):
         return self._cidr
@@ -237,9 +243,18 @@ class IPValue:
 
 class FakeIPAddress:
     def __init__(
-        self, cidr, family=4, status="active", tags=None, assigned_object=None, vrf=None, cf=None
+        self,
+        cidr,
+        family=4,
+        status="active",
+        tags=None,
+        assigned_object=None,
+        vrf=None,
+        cf=None,
+        role=None,
     ):
         self.address = IPValue(cidr)
+        self.role = role
         self.family = family
         self.status = status
         self.tags = FakeTags(tags)
@@ -468,6 +483,7 @@ def fake_netbox_bgp(
     prefix_lists=None,
     prefix_list_rules=None,
     aspath_list_rules=None,
+    communities=None,
 ):
     return types.SimpleNamespace(
         BGPSession=FakeManager(sessions),
@@ -476,4 +492,5 @@ def fake_netbox_bgp(
         PrefixList=FakeManager(prefix_lists),
         PrefixListRule=FakeManager(prefix_list_rules),
         ASPathListRule=FakeManager(aspath_list_rules),
+        Community=FakeManager(communities),
     )

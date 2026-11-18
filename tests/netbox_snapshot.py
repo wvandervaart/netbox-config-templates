@@ -22,8 +22,13 @@ from netbox_mocks import (
     FakeInterface,
     FakeIPAddress,
     FakePeerGroup,
+    FakeASPathList,
+    FakeASPathListRule,
     FakePolicy,
+    FakePrefixList,
+    FakePrefixListRule,
     FakeQuerySet,
+    FakeRoutingPolicyRule,
     FakeTags,
     FakeVlan,
     FakeVRF,
@@ -152,23 +157,75 @@ def _find_primary_ip(data, interfaces):
     )
 
 
+def _build_routing_policies(data):
+    """RoutingPolicy/PrefixList/Community/AS-path objects from the snapshot's
+    routing_policies/prefix_lists/communities/aspath_lists (see
+    serialize_routing_policies() in fetch_netbox_snapshot.py). Snapshots taken
+    before those keys existed yield empty collections - sessions then fall
+    back to rule-less FakePolicy(name) stubs, exactly as before."""
+    prefix_lists, prefix_list_rules = {}, []
+    for pl in data.get("prefix_lists", []):
+        obj = FakePrefixList(id=pl["id"], name=pl["name"], tags=pl["tags"])
+        prefix_lists[pl["id"]] = obj
+        prefix_list_rules += [
+            FakePrefixListRule(obj, r["index"], r["prefix_custom"], le=r["le"], ge=r["ge"], prefix=r["prefix"], action=r["action"])
+            for r in pl["rules"]
+        ]
+    communities = {
+        c["id"]: types.SimpleNamespace(id=c["id"], value=c["value"], description=c["description"])
+        for c in data.get("communities", [])
+    }
+    aspath_lists, aspath_list_rules = {}, []
+    for al in data.get("aspath_lists", []):
+        obj = FakeASPathList(id=al["id"], name=al["name"])
+        aspath_lists[al["id"]] = obj
+        aspath_list_rules += [FakeASPathListRule(obj, r["description"], r["pattern"]) for r in al["rules"]]
+    policies = {}
+    for rp in data.get("routing_policies", []):
+        policy = FakePolicy(rp["name"], tags=rp["tags"])
+        policy.rules = FakeQuerySet(
+            [
+                FakeRoutingPolicyRule(
+                    policy,
+                    r["index"],
+                    action=r["action"],
+                    match_ip_address=[prefix_lists[i] for i in r["match_ip_address"]],
+                    match_ipv6_address=[prefix_lists[i] for i in r["match_ipv6_address"]],
+                    match_community=[communities[i] for i in r["match_community"]],
+                    match_aspath_list=[aspath_lists[i] for i in r["match_aspath_list"]],
+                    match_custom=r["match_custom"],
+                    set_actions=r["set_actions"],
+                )
+                for r in rp["rules"]
+            ]
+        )
+        policies[rp["name"]] = policy
+    return policies, list(prefix_lists.values()), prefix_list_rules, aspath_list_rules, list(communities.values())
+
+
 def _build_bgp(data, device, vrfs):
+    policies, prefix_lists, prefix_list_rules, aspath_list_rules, communities = _build_routing_policies(data)
+
+    def policy(name):
+        return policies.get(name) or FakePolicy(name)
+
     peer_groups = {
         pg["name"]: FakePeerGroup(
             id=pg["id"],
             name=pg["name"],
             cf=pg["custom_fields"],
-            export_policies=[FakePolicy(n) for n in pg["export_policies"]],
-            import_policies=[FakePolicy(n) for n in pg["import_policies"]],
+            export_policies=[policy(n) for n in pg["export_policies"]],
+            import_policies=[policy(n) for n in pg["import_policies"]],
         )
         for pg in data["bgp_peer_groups"]
     }
     sessions = []
     for s in data["bgp_sessions"]:
-        local_vrf = None  # local_address VRF isn't captured separately; sessions
-        # here are keyed off the device's routed/global address in every
-        # snapshot fetched so far. Extend fetch_netbox_snapshot.py's
-        # serialize_bgp() if a VRF-scoped session needs testing.
+        # local/remote_address_vrf were added to fetch_netbox_snapshot.py's
+        # serialize_bgp() later - snapshots captured before that have no such
+        # keys and keep rendering every session in the global table, as before.
+        local_vrf = vrfs.get(s.get("local_address_vrf")) if s.get("local_address_vrf") else None
+        remote_vrf = vrfs.get(s.get("remote_address_vrf")) if s.get("remote_address_vrf") else None
         sessions.append(
             FakeBGPSession(
                 device=device,
@@ -178,7 +235,8 @@ def _build_bgp(data, device, vrfs):
                     family=s["local_address_family"],
                 ),
                 remote_address=types.SimpleNamespace(
-                    address=types.SimpleNamespace(ip=s["remote_address"].split("/")[0])
+                    address=types.SimpleNamespace(ip=s["remote_address"].split("/")[0]),
+                    vrf=remote_vrf,
                 ),
                 local_as=s["local_as"],
                 remote_as=s["remote_as"],
@@ -187,11 +245,19 @@ def _build_bgp(data, device, vrfs):
                 cf=s["custom_fields"],
                 status=s["status"],
                 tags=s["tags"],
-                export_policies=[FakePolicy(n) for n in s["export_policies"]],
-                import_policies=[FakePolicy(n) for n in s["import_policies"]],
+                export_policies=[policy(n) for n in s["export_policies"]],
+                import_policies=[policy(n) for n in s["import_policies"]],
             )
         )
-    return fake_netbox_bgp(sessions=sessions, peer_groups=list(peer_groups.values()))
+    return fake_netbox_bgp(
+        sessions=sessions,
+        peer_groups=list(peer_groups.values()),
+        routing_policies=list(policies.values()),
+        prefix_lists=prefix_lists,
+        prefix_list_rules=prefix_list_rules,
+        aspath_list_rules=aspath_list_rules,
+        communities=communities,
+    )
 
 
 def _build_esi_objects(data, interfaces_by_name):

@@ -69,9 +69,10 @@ set {{ nbb(vrf_name, pgname, nbr) }} shutdown
                     {% set active   = pgid in int_pgids or pgid in ext_pgids %}
                     {% if active %}
                         {% set vrf_name = pg_vrf[pgid] if pg_vrf[pgid] is defined else "" %}
-                        {% set family   = "inet6" if "_V6" in pgname else "inet" %}
+                        {% set family   = "inet6" if pg.cf.IP_VERSION == "6" else "inet" %}
                         {% set is_ibgp  = pgid in int_pgids %}
                         {% set bfdint   = pg.cf.BFD_INTERVAL if pg.cf.BFD_INTERVAL != None else 300 %}
+                        {% set rfc8950  = pg.cf.RFC8950 if pg.cf.RFC8950 != None else False %}
 {#  #}
 set {{ pgb(vrf_name, pgname) }} type {{ "internal" if is_ibgp else "external" }}
                         {% if not is_ibgp %}
@@ -109,6 +110,9 @@ set {{ pgb(vrf_name, pgname) }} import {{ pol.name }}
 set {{ pgb(vrf_name, pgname) }} multipath
                         {% if pgname not in ["SPINE", "LEAF"] or not is_leaf %}
 set {{ pgb(vrf_name, pgname) }} family {{ family }} unicast
+                        {% endif %}
+                        {% if rfc8950 %}
+set {{ pgb(vrf_name, pgname) }} family inet unicast extended-nexthop
                         {% endif %}
         {# -- Per-neighbor overrides within this peer-group ------------------ #}
                         {% for peer in pg_peers.get(pgid, []) %}

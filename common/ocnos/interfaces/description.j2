@@ -1,0 +1,17 @@
+{# "<NetBox description> :: <peer device>-<peer port>[ :: <cable label>]", the
+   description every non-fabric OcNOS interface partial renders. Returns plain text -
+   the caller XML-escapes it. #}
+{% macro describe(interface, cable_label=True) -%}
+    {%- if interface.connected_endpoints is defined and interface.connected_endpoints != [] and interface.connected_endpoints[0].device is defined -%}
+        {%- set peer = interface.connected_endpoints[0].device.name ~ "-" ~ interface.connected_endpoints[0].name -%}
+    {%- elif interface.connected_endpoints is defined and interface.connected_endpoints != [] and interface.connected_endpoints[0].name is defined -%}
+        {%- set peer = interface.connected_endpoints[0].name -%}
+    {%- else -%}
+        {%- set peer = "" -%}
+    {%- endif -%}
+    {%- set description = ((interface.description ~ " :: ") if (peer and interface.description != "") else interface.description) ~ peer -%}
+    {%- if cable_label and interface.link_peers is defined and interface.link_peers != [] and interface.link_peers[0].cable is defined and interface.link_peers[0].cable.label != "" -%}
+        {%- set description = description ~ " :: " ~ interface.link_peers[0].cable.label -%}
+    {%- endif -%}
+    {{- description -}}
+{%- endmacro %}

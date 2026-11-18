@@ -1,0 +1,23 @@
+{# p2p underlay links. Area membership, p2p network type and BFD are set in
+   common/ocnos/ospf.j2 (for the ports is_fabric_port() selects).
+   collect() fills this interface's part of the per-interface dict that
+   router/ocnos/interfaces/main.j2 serializes - see there for the keys. #}
+{% macro is_fabric_port(interface) -%}
+    {{- interface.enabled == true and interface.cf.get('FABRIC') and interface.type != "lag" and not interface.name.startswith('loopback')
+        and interface.connected_endpoints is defined and interface.connected_endpoints != []
+        and interface.mtu is defined and interface.mtu | int > 0 -}}
+{%- endmacro %}
+{% macro collect(interface, cfg) %}
+    {% if is_fabric_port(interface) | trim == "True" %}
+        {% set _ = cfg.update({
+            "description": "to-" ~ interface.connected_endpoints[0].device.name ~ "-" ~ interface.connected_endpoints[0].name,
+            "mtu": interface.mtu
+        }) %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% set addrs = cfg.setdefault("ipv6" if ip.family == 6 else "ipv4", []) %}
+            {% if ip.address | string not in addrs %}
+                {% set _ = addrs.append(ip.address | string) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endmacro %}

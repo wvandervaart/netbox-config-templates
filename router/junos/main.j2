@@ -8,7 +8,7 @@
 {# device-scope maintenance flag - kept in sync with the identical copies in the other 3 junos mains #}
 {% set is_maintenance = "maintenance" in device.tags.names() %}
 {# site-scoped maintenance VLAN - kept in sync with the identical copies in the other 4 junos mains #}
-{% set maintenance_vlan = ipam.VLAN.objects.filter(site=device.site, tags__name='maintenance').first() %}
+{% set maintenance_vlan = ipam.VLAN.objects.filter(tags__name='maintenance').first() %}
 {% include 'router/junos/delete.j2' %}
 {% include 'router/junos/system.j2' %}
 {% include 'common/junos/system/system.j2' %}

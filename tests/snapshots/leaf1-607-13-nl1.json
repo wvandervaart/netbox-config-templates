@@ -144,12 +144,12 @@
       "description": "vod-ingest-ftp2",
       "export_policies": [],
       "import_policies": [],
-      "local_address": "198.18.0.46/26",
+      "local_address": "198.18.0.246/26",
       "local_address_family": 4,
       "local_as": 65000,
       "name": "leaf1-607-13-vod-ingest",
       "peer_group": "ANYCAST",
-      "remote_address": "198.18.0.45/26",
+      "remote_address": "198.18.0.245/26",
       "remote_as": 65004,
       "status": "active",
       "tags": []
@@ -4598,13 +4598,13 @@
       "id": 20225,
       "ip_addresses": [
         {
-          "address": "198.18.0.46/26",
+          "address": "198.18.0.246/26",
           "family": 4,
           "status": "active",
           "tags": []
         },
         {
-          "address": "198.18.0.48/26",
+          "address": "198.18.0.248/26",
           "family": 4,
           "status": "active",
           "tags": []

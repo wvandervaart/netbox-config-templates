@@ -1,0 +1,100 @@
+{# OcNOS has no interface-level area statement - interfaces join an area via a
+   `network <prefix> area <id>` entry under the OSPF instance. The prefix must cover
+   the interface's connected subnet, hence ip.address.cidr (network/len) rather than
+   the host address. Interface-level settings (p2p network type, BFD) of the fabric
+   links live in the instance's interface list, for the same ports
+   common/ocnos/interfaces/fabric.j2 renders. #}
+{% import 'common/ocnos/ns.j2' as ns %}
+{% import 'common/ocnos/interfaces/fabric.j2' as fabric %}
+{% set area = ospf.area if (ospf is defined and ospf.area is defined) else "0.0.0.0" %}
+{# global loopbacks = loopbackN with no VRF; the first IPv4 on the first one is the router-id #}
+{% set nso = namespace(router_id=none) %}
+{% set global_loopbacks = [] %}
+{% set networks = [] %}
+{% for interface in device_interfaces %}
+    {% if interface.enabled == true and interface.name.startswith('loopback') and interface.vrf.name is not defined %}
+        {% set _ = global_loopbacks.append(interface) %}
+        {% for ip in interface.ip_addresses.all() if ip.family == 4 %}
+            {% if nso.router_id is none %}
+                {% set nso.router_id = ip.address.ip %}
+            {% endif %}
+            {% set _ = networks.append(ip.address.ip | string ~ "/32") %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}
+{% for interface in device_interfaces %}
+    {# a loopback can carry FABRIC too - it's already covered above #}
+    {% if interface.enabled == true and interface.cf.get('FABRIC') and interface.type != "lag" and not interface.name.startswith('loopback') %}
+        {% for ip in interface.ip_addresses.all() if ip.family == 4 %}
+            {% set _ = networks.append(ip.address.cidr | string) %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}
+<ospfv2 xmlns="{{ ns.ospf }}">
+  <processes>
+    <process>
+      <ospf-id>1</ospf-id>
+      <config>
+        <ospf-id>1</ospf-id>
+        <vrf-name>default</vrf-name>
+{% if nso.router_id is not none %}
+        <router-id>{{ nso.router_id }}</router-id>
+{% endif %}
+        <reference-bandwidth>1000000</reference-bandwidth>
+      </config>
+      <passive-interfaces>
+{% for interface in global_loopbacks %}
+        <passive-interface>
+          <name>{{ interface.name | e }}</name>
+          <config>
+            <name>{{ interface.name | e }}</name>
+            <passive-mode>enable</passive-mode>
+          </config>
+        </passive-interface>
+{% endfor %}
+      </passive-interfaces>
+      <areas>
+        <area>
+          <area-id>{{ area | e }}</area-id>
+          <config>
+            <area-id>{{ area | e }}</area-id>
+          </config>
+          <networks>
+{% for network in networks | unique %}
+            <network>
+              <prefix>{{ network }}</prefix>
+              <config>
+                <prefix>{{ network }}</prefix>
+                {# mandatory in the model; 0 is the CLI's implicit instance #}
+                <instance-id>0</instance-id>
+              </config>
+            </network>
+{% endfor %}
+          </networks>
+        </area>
+      </areas>
+      <lsdb>
+        <overflow>
+          <normal-lsa>
+            <config>
+              <max-limit>12000</max-limit>
+              <limit-type>hard</limit-type>
+            </config>
+          </normal-lsa>
+        </overflow>
+      </lsdb>
+    </process>
+  </processes>
+  <interfaces>
+{% for interface in device_interfaces if fabric.is_fabric_port(interface) | trim == "True" %}
+    <interface>
+      <name>{{ interface.name | e }}</name>
+      <config>
+        <name>{{ interface.name | e }}</name>
+        <network-type>point-to-point</network-type>
+        <enable-bfd>enable</enable-bfd>
+      </config>
+    </interface>
+{% endfor %}
+  </interfaces>
+</ospfv2>

@@ -2,7 +2,7 @@
    Narrower than the junos copies: eos has no aspath-list.j2 (no match_aspath_list use) and no
    template here reads peer.tags, so those paths are dropped. Shared by spine/eos and router/eos
    (they set eos_bgp_role_partial before including this file) - junos roles need the fuller set,
-   see their main.j2 files. #}
+   see their main.j2 files. common/ocnos/bgp/main.j2 is a copy of this field set (plus rules__match_aspath_list) - keep in sync. #}
 {% set bgp_sessions = netbox_bgp.BGPSession.objects.filter(device=device).select_related(
     'local_address__vrf', 'remote_address__vrf', 'local_as', 'remote_as', 'peer_group'
 ).prefetch_related(

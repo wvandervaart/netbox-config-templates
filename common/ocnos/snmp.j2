@@ -1,0 +1,44 @@
+{% import 'common/ocnos/ns.j2' as ns %}
+{% if snmp is defined and snmp.community is defined %}
+<snmp xmlns="{{ ns.snmp }}">
+  <servers xmlns="{{ ns.snmp_server }}">
+    <server>
+      <vrf-name>management</vrf-name>
+      <config>
+        <vrf-name>management</vrf-name>
+        <enabled/>
+      </config>
+      <snmp-views xmlns="{{ ns.snmp_ext }}">
+        <snmp-view>
+          <view-name>all</view-name>
+          <config>
+            <view-name>all</view-name>
+          </config>
+          <oid-trees>
+            <oid-tree>
+              <oid>.1</oid>
+              <config>
+                <oid>.1</oid>
+                <filter-type>included</filter-type>
+              </config>
+            </oid-tree>
+          </oid-trees>
+        </snmp-view>
+      </snmp-views>
+      <communities xmlns="{{ ns.snmp_ext }}">
+    {% for community in snmp.community %}
+        <community>
+          <community-name>{{ community.name | e }}</community-name>
+          <config>
+            <community-name>{{ community.name | e }}</community-name>
+            <community-view-name>all</community-view-name>
+            <version>v2c</version>
+            <access>ro</access>
+          </config>
+        </community>
+    {% endfor %}
+      </communities>
+    </server>
+  </servers>
+</snmp>
+{% endif %}

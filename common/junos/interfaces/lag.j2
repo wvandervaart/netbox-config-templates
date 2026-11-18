@@ -1,8 +1,10 @@
 {% set ns = namespace(dev_count=0) %}
 {% set lagspeed = {} %}
 {% set mapping = {
+    "1000base-x-sfp":    "1g",
     "1000base-t":        "1g",
     "25gbase-x-sfp28":   "25g",
+    "50gbase-x-sfp56":   "50g",
     "10gbase-x-sfpp":    "10g",
     "100gbase-x-qsfp28": "100g",
     "400gbase-x-qsfpdd": "400g"
@@ -10,7 +12,8 @@
 {#  #}
 {% set children_by_parent = {} %}
 {% for iface in device_interfaces %}
-    {% if iface.parent %}
+    {# sub-interfaces only - breakout channels (et-0/0/0:1) also have a parent #}
+    {% if iface.parent and '.' in iface.name %}
         {% set _ = children_by_parent.setdefault(iface.parent.id, []).append(iface) %}
     {% endif %}
 {% endfor %}

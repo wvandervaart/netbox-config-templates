@@ -1,0 +1,211 @@
+{# A NETCONF edit-config rejects the same list key twice, so every interface is
+   rendered exactly once: each partial's collect(interface, cfg) fills in its part of
+   one per-interface dict, called in the same order the CLI templates were included -
+   a later partial overrides an earlier one's scalar keys, the way a later CLI
+   `description`/`mtu` line overrode an earlier one. Keys:
+     description, mtu, shutdown, vrf, dot1q          scalars
+     ipv4 / ipv6                                     address/len lists (first IPv4 = primary)
+     channel_group, fec_off, speed                   LAG member settings
+     switchport  {mode, access_vlan, allowed, allowed_all, native_vlan} (bridge-port: vlan.j2)
+     vrrp        [{group, family, address, priority}] rendered after the interface list
+   An interface no partial claimed renders nothing. A new interface feature adds its
+   keys in its partial's collect() and the matching XML below. #}
+{% import 'common/ocnos/ns.j2' as ns %}
+{% import 'router/ocnos/interfaces/mgmt.j2' as mgmt %}
+{% import 'common/ocnos/interfaces/fabric.j2' as fabric %}
+{% import 'router/ocnos/interfaces/lag.j2' as lag %}
+{% import 'router/ocnos/interfaces/switchport.j2' as switchport %}
+{% import 'router/ocnos/interfaces/routed.j2' as routed %}
+{% import 'common/ocnos/interfaces/loopback.j2' as loopback %}
+{% set vrrp_groups = [] %}
+<interfaces xmlns="{{ ns.interface }}">
+{% for interface in device_interfaces %}
+    {% set cfg = {} %}
+    {% for part in [mgmt, fabric, lag, switchport, routed, loopback] %}
+        {% set _ = part.collect(interface, cfg) %}
+    {% endfor %}
+    {% for gw in cfg.get("vrrp", []) %}
+        {% set _ = vrrp_groups.append(dict(gw, interface=interface.name)) %}
+    {% endfor %}
+    {% if cfg %}
+  <interface>
+    <name>{{ interface.name | e }}</name>
+    <config>
+      <name>{{ interface.name | e }}</name>
+        {% if cfg.description %}
+      <description>{{ cfg.description | e }}</description>
+        {% endif %}
+        {% if cfg.mtu %}
+      <mtu>{{ cfg.mtu }}</mtu>
+        {% endif %}
+        {% if cfg.shutdown %}
+      <shutdown/>
+        {% endif %}
+        {# the VRF binding precedes the addresses - binding a VRF clears an interface's IP config #}
+        {% if cfg.vrf %}
+      <vrf-name>{{ cfg.vrf | e }}</vrf-name>
+        {% endif %}
+        {% if cfg.switchport %}
+      <enable-switchport/>
+        {% endif %}
+    </config>
+        {% if cfg.dot1q %}
+    <extended xmlns="{{ ns.if_extended }}">
+      <subinterface-encapsulation>
+        <single-tag-vlan-matches>
+          <single-tag-vlan-match>
+            <encapsulation-type>dot1q</encapsulation-type>
+            <config>
+              <encapsulation-type>dot1q</encapsulation-type>
+              <outer-vlan-id>{{ cfg.dot1q | e }}</outer-vlan-id>
+            </config>
+          </single-tag-vlan-match>
+        </single-tag-vlan-matches>
+      </subinterface-encapsulation>
+    </extended>
+        {% endif %}
+        {% if cfg.ipv4 %}
+    <ipv4 xmlns="{{ ns.if_ip }}">
+      <config>
+        <primary-ip-addr>{{ cfg.ipv4[0] }}</primary-ip-addr>
+      </config>
+            {% for addr in cfg.ipv4[1:] %}
+      <secondary-addresses>
+        <ip-address>{{ addr }}</ip-address>
+        <config>
+          <ip-address>{{ addr }}</ip-address>
+        </config>
+      </secondary-addresses>
+            {% endfor %}
+    </ipv4>
+        {% endif %}
+        {% if cfg.ipv6 %}
+    <ipv6 xmlns="{{ ns.if_ip }}">
+            {% for addr in cfg.ipv6 %}
+      <addresses>
+        <ipv6-address>{{ addr }}</ipv6-address>
+        <config>
+          <ipv6-address>{{ addr }}</ipv6-address>
+        </config>
+      </addresses>
+            {% endfor %}
+    </ipv6>
+        {% endif %}
+        {% if cfg.channel_group %}
+    <member-aggregation xmlns="{{ ns.if_aggregate }}">
+      <config>
+        <agg-type>lacp</agg-type>
+        <aggregate-id>{{ cfg.channel_group | e }}</aggregate-id>
+        <lacp-mode>active</lacp-mode>
+      </config>
+    </member-aggregation>
+        {% endif %}
+        {% if cfg.fec_off or cfg.speed %}
+    <ethernet xmlns="{{ ns.if_ethernet }}">
+            {% if cfg.speed %}
+      <config>
+        <port-speed>{{ cfg.speed }}</port-speed>
+      </config>
+            {% endif %}
+            {% if cfg.fec_off %}
+      <extended-ethernet xmlns="{{ ns.if_extended }}">
+        <config>
+          <forward-err-correction>off</forward-err-correction>
+        </config>
+      </extended-ethernet>
+            {% endif %}
+    </ethernet>
+        {% endif %}
+        {% if cfg.switchport %}
+            {% set sw = cfg.switchport %}
+    {# bridge-group membership is the bridge's bridge-ports list (common/ocnos/vlan.j2) #}
+    <port-vlan xmlns="{{ ns.port_vlan }}">
+      <switched-vlans>
+        <switched-vlan>
+          <interface-mode>{{ sw.mode }}</interface-mode>
+          <config>
+            <interface-mode>{{ sw.mode }}</interface-mode>
+          </config>
+            {% if sw.access_vlan or sw.native_vlan %}
+          <vlans>
+            <config>
+                {% if sw.access_vlan %}
+              <vlan-id>{{ sw.access_vlan }}</vlan-id>
+                {% endif %}
+                {% if sw.native_vlan %}
+              <native-vlan-id>{{ sw.native_vlan }}</native-vlan-id>
+                {% endif %}
+            </config>
+          </vlans>
+            {% endif %}
+            {% if sw.allowed_all or sw.allowed %}
+          <allowed-vlan>
+            <config>
+              <allowed-vlan-id>{{ 'all' if sw.allowed_all else sw.allowed | join(',') }}</allowed-vlan-id>
+            </config>
+          </allowed-vlan>
+            {% endif %}
+        </switched-vlan>
+      </switched-vlans>
+    </port-vlan>
+        {% endif %}
+  </interface>
+    {% endif %}
+{% endfor %}
+</interfaces>
+{# VRRP: one instance per (family, VRID), with the interfaces running it #}
+{% set vrrp_by = {4: {}, 6: {}} %}
+{% for gw in vrrp_groups %}
+    {% set _ = vrrp_by[gw.family].setdefault(gw.group, []).append(gw) %}
+{% endfor %}
+{% if vrrp_groups %}
+<vrrp xmlns="{{ ns.vrrp }}">
+    {% for family in [4, 6] if vrrp_by[family] %}
+        {% set af = 'ipv6' if family == 6 else 'ipv4' %}
+  <{{ af }}-instances>
+        {% for vrid, gws in vrrp_by[family].items() %}
+    <{{ af }}-instance>
+      <virtual-router-id>{{ vrid }}</virtual-router-id>
+      <config>
+        <virtual-router-id>{{ vrid }}</virtual-router-id>
+      </config>
+      <interfaces>
+            {% for gw in gws %}
+        <interface>
+          <interface-name>{{ gw.interface | e }}</interface-name>
+          <config>
+            <interface-name>{{ gw.interface | e }}</interface-name>
+            <priority>{{ gw.priority }}</priority>
+          </config>
+          <protocol-enable>
+            <config>
+              <enable/>
+            </config>
+          </protocol-enable>
+                {% if family == 6 %}
+          <virtual-ip-addresses>
+            <virtual-ip-address>
+              <virtual-ip-address>{{ gw.address }}</virtual-ip-address>
+              <config>
+                <virtual-ip-address>{{ gw.address }}</virtual-ip-address>
+                <ip-address-owner>false</ip-address-owner>
+              </config>
+            </virtual-ip-address>
+          </virtual-ip-addresses>
+                {% else %}
+          <virtual-ip>
+            <config>
+              <virtual-ip-address>{{ gw.address }}</virtual-ip-address>
+              <ip-address-owner>false</ip-address-owner>
+            </config>
+          </virtual-ip>
+                {% endif %}
+        </interface>
+            {% endfor %}
+      </interfaces>
+    </{{ af }}-instance>
+        {% endfor %}
+  </{{ af }}-instances>
+    {% endfor %}
+</vrrp>
+{% endif %}

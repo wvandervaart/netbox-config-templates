@@ -1,0 +1,21 @@
+{# eth0 is the OcNOS out-of-band port and is always in the built-in
+   "management" VRF, so no VRF binding is rendered for it.
+   collect() fills the per-interface dict router/ocnos/interfaces/main.j2 serializes. #}
+{% import 'common/ocnos/interfaces/description.j2' as d %}
+{% macro collect(interface, cfg) %}
+    {% if interface.name == 'eth0' %}
+        {% set description = d.describe(interface) %}
+        {% if description != "" %}
+            {% set _ = cfg.update({"description": description}) %}
+        {% endif %}
+        {% if interface.enabled != true %}
+            {% set _ = cfg.update({"shutdown": True}) %}
+        {% endif %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% set addrs = cfg.setdefault("ipv6" if ip.family == 6 else "ipv4", []) %}
+            {% if ip.address | string not in addrs %}
+                {% set _ = addrs.append(ip.address | string) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endmacro %}

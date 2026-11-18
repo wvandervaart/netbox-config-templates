@@ -84,14 +84,15 @@ Accessed as `object.cf.FIELD` (raises if the custom field isn't defined on that 
 
 ### BGP peer group (netbox-bgp)
 
-| Field | Purpose |
-|---|---|
-| `AUTH_KEY` | Peer-group-level BGP auth key |
-| `BFD` / `BFD_INTERVAL` | Enables BFD / sets minimum-interval (defaults to 300) |
-| `PREFIX_LIMIT` | Peer-group-level max-prefix override (with teardown) |
-| `FILTER_PRIVATE_ASN` | Enables `remove-private all` on outbound AS-path |
-| `BGP_NEXTHOP` | Sets `next-hop-{self\|third-party\|...}` behavior (EOS only) |
-
+| Field                  | Purpose                                                      |
+|------------------------|--------------------------------------------------------------|
+| `AUTH_KEY`             | Peer-group-level BGP auth key                                |
+| `BFD` / `BFD_INTERVAL` | Enables BFD / sets minimum-interval (defaults to 300)        |
+| `PREFIX_LIMIT`         | Peer-group-level max-prefix override (with teardown)         |
+| `FILTER_PRIVATE_ASN`   | Enables `remove-private all` on outbound AS-path             |
+| `BGP_NEXTHOP`          | Sets `next-hop-{self\|third-party\|...}` behavior (EOS only) |
+| `IP_VERSION`           | Sets `address-family` defaults to inet                       |
+| `RFC8950`              | enables IPv4 NLRIs with IPv6 nexthop                         |
 No `.cf` access exists directly under `leaf/`, `ds/`, or `mgmt/` — those roles render through the shared `common/` (and `router/`) templates listed above.
 
 ## Tags
@@ -113,7 +114,7 @@ NetBox spreads `device.get_config_context()` keys directly into the top-level te
 
 | Key | Shape | Purpose |
 |---|---|---|
-| `users` | `.junos[]` (`root_auth`), `.exampleorg[]` (`_name`, `pubkey`/`pubkeytype`, `passwd`, `uid`, `arista_pw`, `systems[]` → `{_name, class}`) | Provisions local operator accounts (SSH key, password, login class) per vendor |
+| `users` | `.junos[]` (`root_auth`), `.exampleorg[]` (`_name`, `pubkey`/`pubkeytype`, `passwd`, `uid`, `arista_pw`, `ocnos_pw`, `systems[]` → `{_name, class}`) | Provisions local operator accounts (SSH key, password, login class) per vendor |
 | `utility` | `.timezone` (str), `.ntp[]`, `.dns[]`, `.syslog[]` (`{_name, port}`) | Timezone, NTP/DNS servers, syslog hosts |
 | `ddos_protection` | `.protocols[]` → `{name, aggregate: {bandwidth, burst}}` | Per-protocol DDoS storm-control policer thresholds |
 | `bgp` | `.asn`, `.clusterid`, `.key` | Only `.asn` is currently used (AS number); `.clusterid`/`.key` exist in real data but aren't referenced by any template |
@@ -125,7 +126,7 @@ NetBox spreads `device.get_config_context()` keys directly into the top-level te
 | `hash_key` / `enhanced_hash_key` | `.family.inet[]`, `.family.inet6[]` | Forwarding hash-key modes, gated by device-type substring match (`ACX7100` / `QFX`) |
 | `manual_config` / `group_config` | list of raw config-line strings | Escape hatch for one-off device- or group-scoped lines not worth a dedicated template; included near the bottom of every role's `main.j2`, rendered verbatim |
 
-Secret-shaped fields (`users[].root_auth`/`arista_pw`, `bgp.key`, `ospf.key`, `snmp.auth_key`) are redacted in the committed test snapshots — see `tests/fetch_netbox_snapshot.py`'s `REDACT_KEYS`. Real values only ever exist in NetBox itself.
+Secret-shaped fields (`users[].root_auth`/`arista_pw`/`ocnos_pw`, `bgp.key`, `ospf.key`, `snmp.auth_key`) are redacted in the committed test snapshots — see `tests/fetch_netbox_snapshot.py`'s `REDACT_KEYS`. Real values only ever exist in NetBox itself.
 
 ## BGP/interface prefetching
 

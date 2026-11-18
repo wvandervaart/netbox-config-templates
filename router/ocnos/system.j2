@@ -1,0 +1,29 @@
+{# management access (SSH + NETCONF) only in the management VRF - the
+   equivalent of router/eos/{system,api}.j2 shutting SSH in vrf internet #}
+{% import 'common/ocnos/ns.j2' as ns %}
+<ssh-server xmlns="{{ ns.ssh }}">
+  <vrfs>
+    <vrf>
+      <vrf-name>management</vrf-name>
+      <config>
+        <vrf-name>management</vrf-name>
+        <enable/>
+      </config>
+    </vrf>
+  </vrfs>
+</ssh-server>
+<netconf-server xmlns="{{ ns.management_server }}">
+  <vrfs>
+    <vrf>
+      <vrf-name>management</vrf-name>
+      <config>
+        <vrf-name>management</vrf-name>
+      </config>
+      <netconf-ssh-config>
+        <config>
+          <feature-netconf-ssh/>
+        </config>
+      </netconf-ssh-config>
+    </vrf>
+  </vrfs>
+</netconf-server>

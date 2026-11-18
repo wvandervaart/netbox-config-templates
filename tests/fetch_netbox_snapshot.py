@@ -38,6 +38,7 @@ SNAPSHOT_DIR = Path(__file__).resolve().parent / "snapshots"
 REDACT_KEYS = {
     "passwd",
     "arista_pw",
+    "ocnos_pw",
     "root_auth",
     "key",
     "auth_key",
@@ -336,7 +337,22 @@ def serialize_esi_objects(nb, device_id, interface_names):
 def serialize_bgp(nb, device_id):
     sessions = list(nb.plugins.bgp.bgpsession.filter(device_id=device_id))
     pg_ids = set()
+    vrf_ids = set()
     out_sessions = []
+
+    # The session's nested local/remote_address is a brief IP record without
+    # .vrf - look each one up in full (cached, sessions often share a local IP)
+    # so VRF-scoped sessions render under their VRF instead of the global table.
+    ip_cache = {}
+
+    def address_vrf(addr):
+        if addr.id not in ip_cache:
+            ip_cache[addr.id] = nb.ipam.ip_addresses.get(addr.id)
+        vrf = ip_cache[addr.id].vrf
+        if vrf:
+            vrf_ids.add(vrf.id)
+        return vrf.name if vrf else None
+
     for s in sessions:
         pg_ids.add(s.peer_group.id)
         out_sessions.append(
@@ -344,7 +360,9 @@ def serialize_bgp(nb, device_id):
                 "name": s.name,
                 "local_address": str(s.local_address.address),
                 "local_address_family": s.local_address.family.value,
+                "local_address_vrf": address_vrf(s.local_address),
                 "remote_address": str(s.remote_address.address),
+                "remote_address_vrf": address_vrf(s.remote_address),
                 "local_as": s.local_as.asn if s.local_as else None,
                 "remote_as": s.remote_as.asn if s.remote_as else None,
                 "peer_group": s.peer_group.name,
@@ -369,7 +387,101 @@ def serialize_bgp(nb, device_id):
                 "import_policies": [p.name for p in (pg.import_policies or [])],
             }
         )
-    return out_sessions, out_pgs
+    return out_sessions, out_pgs, vrf_ids
+
+
+def _ids(objs):
+    return [o.id for o in (objs or [])]
+
+
+def _plain(value):
+    """match_custom/set_actions are free-form JSON fields - pynetbox can hand
+    them back as Record-ish wrappers, so round-trip them to plain JSON types."""
+    return json.loads(json.dumps(value, default=dict)) if value is not None else None
+
+
+def serialize_routing_policies(nb):
+    """Every netbox-bgp RoutingPolicy with its rules, every PrefixList with its
+    rules, every Community, and every AS-path list with its rules.
+
+    Captured globally rather than just the ones this device's sessions
+    reference, because the templates themselves read them globally:
+    `RoutingPolicy.objects.all()` backs both the ALWAYS_ADD tag scan and the
+    by-name lookup for match_custom "policy" links, and policies/prefix-lists
+    reach each other transitively. Cross-references are stored as ids (policy
+    rules -> prefix-lists/communities/as-path lists) because prefix-list names
+    aren't guaranteed unique. match_custom/set_actions go through redact() like
+    every other free-form field."""
+    bgp = nb.plugins.bgp
+
+    communities = [
+        {"id": c.id, "value": c.value, "description": c.description or ""}
+        for c in bgp.community.all()
+    ]
+
+    rules_by_pl = {}
+    for r in bgp.prefix_list_rule.all():
+        rules_by_pl.setdefault(r.prefix_list.id, []).append(
+            {
+                "index": r.index,
+                "action": getattr(r.action, "value", r.action),
+                "prefix": str(r.prefix.prefix) if getattr(r, "prefix", None) else None,
+                "prefix_custom": r.prefix_custom,
+                "ge": r.ge,
+                "le": r.le,
+            }
+        )
+    prefix_lists = [
+        {
+            "id": pl.id,
+            "name": pl.name,
+            "family": getattr(pl.family, "value", pl.family),
+            "tags": tag_names(pl.tags),
+            "rules": sorted(rules_by_pl.get(pl.id, []), key=lambda r: r["index"]),
+        }
+        for pl in bgp.prefix_list.all()
+    ]
+
+    # Only junos's aspath-list.j2 reads these. Guarded, since the as-path list
+    # endpoints arrived in a later netbox-bgp release than the rest.
+    aspath_lists = []
+    try:
+        rules_by_al = {}
+        for r in bgp.aspath_list_rule.all():
+            rules_by_al.setdefault(r.aspath_list.id, []).append(
+                {"index": r.index, "pattern": r.pattern, "description": r.description or ""}
+            )
+        aspath_lists = [
+            {"id": al.id, "name": al.name, "rules": sorted(rules_by_al.get(al.id, []), key=lambda r: r["index"])}
+            for al in bgp.aspath_list.all()
+        ]
+    except pynetbox.RequestError as exc:
+        print(f"WARNING: skipping as-path lists ({exc})", file=sys.stderr)
+
+    rules_by_policy = {}
+    for r in bgp.routing_policy_rule.all():
+        rules_by_policy.setdefault(r.routing_policy.id, []).append(
+            {
+                "index": r.index,
+                "action": getattr(r.action, "value", r.action),
+                "match_ip_address": _ids(r.match_ip_address),
+                "match_ipv6_address": _ids(r.match_ipv6_address),
+                "match_community": _ids(r.match_community),
+                "match_aspath_list": _ids(getattr(r, "match_aspath_list", None)),
+                "match_custom": redact(_plain(r.match_custom)),
+                "set_actions": redact(_plain(r.set_actions)),
+            }
+        )
+    routing_policies = [
+        {
+            "id": rp.id,
+            "name": rp.name,
+            "tags": tag_names(rp.tags),
+            "rules": sorted(rules_by_policy.get(rp.id, []), key=lambda r: r["index"]),
+        }
+        for rp in bgp.routing_policy.all()
+    ]
+    return routing_policies, prefix_lists, communities, aspath_lists
 
 
 def fetch_snapshot(nb, device_ref):
@@ -382,7 +494,9 @@ def fetch_snapshot(nb, device_ref):
         sys.exit(f"device not found: {device_ref}")
 
     interfaces, vrf_ids, vlan_ids = serialize_interfaces(nb, device.id)
-    sessions, peer_groups = serialize_bgp(nb, device.id)
+    sessions, peer_groups, bgp_vrf_ids = serialize_bgp(nb, device.id)
+    vrf_ids |= bgp_vrf_ids
+    routing_policies, prefix_lists, communities, aspath_lists = serialize_routing_policies(nb)
     interface_names = {i["name"] for i in interfaces}
 
     snapshot = {
@@ -393,6 +507,10 @@ def fetch_snapshot(nb, device_ref):
         "static_routes": serialize_static_routes(nb, device.name),
         "bgp_sessions": sessions,
         "bgp_peer_groups": peer_groups,
+        "routing_policies": routing_policies,
+        "prefix_lists": prefix_lists,
+        "communities": communities,
+        "aspath_lists": aspath_lists,
         "esi_objects": serialize_esi_objects(nb, device.id, interface_names),
         "maintenance_vlans": serialize_maintenance_vlans(nb, device.site.id),
         "qinq_customer_vlans": serialize_qinq_customer_vlans(nb, interfaces),

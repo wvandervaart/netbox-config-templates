@@ -48,12 +48,12 @@
       "description": "LW_1",
       "export_policies": [],
       "import_policies": [],
-      "local_address": "198.18.0.15/31",
+      "local_address": "198.18.0.123/31",
       "local_address_family": 4,
       "local_as": 65206,
       "name": "MX08_TLQ_LW_1",
       "peer_group": "TLQ_CarrierC_NL_MX08",
-      "remote_address": "198.18.0.14/31",
+      "remote_address": "198.18.0.122/31",
       "remote_as": 60781,
       "status": "active",
       "tags": []
@@ -68,12 +68,12 @@
       "description": "LW_2",
       "export_policies": [],
       "import_policies": [],
-      "local_address": "198.18.0.17/31",
+      "local_address": "198.18.0.125/31",
       "local_address_family": 4,
       "local_as": 65206,
       "name": "MX08_TLQ_LW_2",
       "peer_group": "TLQ_CarrierC_NL_MX08",
-      "remote_address": "198.18.0.16/31",
+      "remote_address": "198.18.0.124/31",
       "remote_as": 60781,
       "status": "active",
       "tags": []
@@ -88,12 +88,12 @@
       "description": "TLQ_MX08_JX21",
       "export_policies": [],
       "import_policies": [],
-      "local_address": "198.18.0.37/31",
+      "local_address": "198.18.0.237/31",
       "local_address_family": 4,
       "local_as": 65206,
       "name": "TLQ_MX08_JX21",
       "peer_group": "TLQ_INTERNAL",
-      "remote_address": "198.18.0.38/31",
+      "remote_address": "198.18.0.238/31",
       "remote_as": 65206,
       "status": "active",
       "tags": []
@@ -643,7 +643,7 @@
       "id": 26616,
       "ip_addresses": [
         {
-          "address": "198.18.0.15/31",
+          "address": "198.18.0.123/31",
           "family": 4,
           "status": "active",
           "tags": []
@@ -691,7 +691,7 @@
       "id": 26617,
       "ip_addresses": [
         {
-          "address": "198.18.0.17/31",
+          "address": "198.18.0.125/31",
           "family": 4,
           "status": "active",
           "tags": []
@@ -2494,7 +2494,7 @@
       "id": 26671,
       "ip_addresses": [
         {
-          "address": "198.18.0.35/32",
+          "address": "198.18.0.234/32",
           "family": 4,
           "status": "active",
           "tags": []
@@ -2622,13 +2622,13 @@
       "id": 26674,
       "ip_addresses": [
         {
-          "address": "198.18.0.19/26",
+          "address": "198.18.0.178/26",
           "family": 4,
           "status": "active",
           "tags": []
         },
         {
-          "address": "198.18.0.20/26",
+          "address": "198.18.0.179/26",
           "custom_fields": {
             "PRIMARY": true
           },
@@ -2639,13 +2639,13 @@
           ]
         },
         {
-          "address": "198.18.0.26/24",
+          "address": "198.18.0.224/24",
           "family": 4,
           "status": "active",
           "tags": []
         },
         {
-          "address": "198.18.0.27/24",
+          "address": "198.18.0.225/24",
           "custom_fields": {
             "PRIMARY": true
           },
@@ -2656,13 +2656,13 @@
           ]
         },
         {
-          "address": "198.18.0.28/24",
+          "address": "198.18.0.226/24",
           "family": 4,
           "status": "active",
           "tags": []
         },
         {
-          "address": "198.18.0.29/24",
+          "address": "198.18.0.227/24",
           "custom_fields": {
             "PRIMARY": true
           },
@@ -2712,25 +2712,25 @@
       "id": 26673,
       "ip_addresses": [
         {
-          "address": "198.18.0.21/28",
+          "address": "198.18.0.186/28",
           "family": 4,
           "status": "active",
           "tags": []
         },
         {
-          "address": "198.18.0.22/28",
+          "address": "198.18.0.187/28",
           "family": 4,
           "status": "active",
           "tags": []
         },
         {
-          "address": "198.18.0.31/25",
+          "address": "198.18.0.229/25",
           "family": 4,
           "status": "active",
           "tags": []
         },
         {
-          "address": "198.18.0.32/25",
+          "address": "198.18.0.230/25",
           "family": 4,
           "status": "active",
           "tags": []
@@ -2775,7 +2775,7 @@
       "id": 26675,
       "ip_addresses": [
         {
-          "address": "198.18.0.37/31",
+          "address": "198.18.0.237/31",
           "family": 4,
           "status": "active",
           "tags": []
@@ -2846,7 +2846,7 @@
         "BFD_INTERVAL": null
       },
       "next_hop": "255.255.255.255",
-      "prefix": "198.18.0.25/23",
+      "prefix": "198.18.0.223/23",
       "vrf": "internet"
     },
     {
@@ -2855,7 +2855,7 @@
         "BFD_INTERVAL": null
       },
       "next_hop": "255.255.255.255",
-      "prefix": "198.18.0.30/24",
+      "prefix": "198.18.0.228/24",
       "vrf": "internet"
     },
     {

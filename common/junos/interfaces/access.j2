@@ -19,14 +19,23 @@
    loopback0's vtep tag. Other roles don't set loopback0 at all, so vtep is
    always False for them and this is a no-op. #}
 {% set vtep = loopback0.cf.get('VTEP') if loopback0 is defined else False %}
+{# children_by_parent only holds sub-interfaces (name has a '.'); breakout
+   channels (et-0/0/0:1) also point at their parent but mark it as a
+   channelized parent instead, which is skipped here entirely - its only config
+   is the number-of-sub-ports line from channelized.j2 #}
 {% set children_by_parent = {} %}
+{% set channelized_parents = [] %}
 {% for iface in device_interfaces %}
     {% if iface.parent %}
-        {% set _ = children_by_parent.setdefault(iface.parent.id, []).append(iface) %}
+        {% if '.' in iface.name %}
+            {% set _ = children_by_parent.setdefault(iface.parent.id, []).append(iface) %}
+        {% elif ':' in iface.name %}
+            {% set _ = channelized_parents.append(iface.parent.id) %}
+        {% endif %}
     {% endif %}
 {% endfor %}
 {% for interface in device_interfaces %}
-    {% if 'irb' not in interface.name and 'ae' not in interface.name and 'lo' not in interface.name %}
+    {% if 'irb' not in interface.name and 'ae' not in interface.name and 'lo' not in interface.name and 'me0' not in interface.name and interface.id not in channelized_parents %}
         {% set description = build_description(interface) | trim %}
         {% set has_mtu     = interface.mtu | int > 0 %}
         {% set in_filter   = interface.cf.get('INPUT_FILTER') %}

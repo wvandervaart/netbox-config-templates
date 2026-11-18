@@ -1,0 +1,83 @@
+{# L2 bridge + VLAN database. Every VLAN carried by a switchport (tagged or
+   untagged, see router/ocnos/interfaces/switchport.j2) or backing a vlanB.V SVI
+   is created in bridge 1, an ipi-network-instance of type l2ni, together with
+   its bridge-ports. Rendered inside the <network-instances> container
+   router/ocnos/main.j2 opens (next to the VRFs). Nothing is rendered on a device
+   with no VLANs or switchports. #}
+{% import 'common/ocnos/ns.j2' as ns %}
+{% set bridge_id = 1 %}
+{% set vlans_by_vid = {} %}
+{% for interface in device_interfaces if interface.enabled == true %}
+    {% if interface.mode or interface.name.startswith('vlan') %}
+        {% if interface.untagged_vlan != None %}
+            {% set _ = vlans_by_vid.setdefault(interface.untagged_vlan.vid, interface.untagged_vlan) %}
+        {% endif %}
+        {% for vlan in interface.tagged_vlans.all() %}
+            {% set _ = vlans_by_vid.setdefault(vlan.vid, vlan) %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}
+{# bridge ports: whatever router/ocnos/interfaces/switchport.j2 turns into a switchport #}
+{% import 'router/ocnos/interfaces/switchport.j2' as switchport %}
+{% set bridge_ports = [] %}
+{% for interface in device_interfaces %}
+    {% set cfg = {} %}
+    {% set _ = switchport.collect(interface, cfg) %}
+    {% if cfg.switchport %}
+        {% set _ = bridge_ports.append(interface.name) %}
+    {% endif %}
+{% endfor %}
+{# bridge_mode (set by router/ocnos/main.j2): "full" = bridge + VLANs + bridge-ports;
+   "no-ports" = bridge + VLANs only; "ports-only" = just the bridge-ports. A port can only
+   join once it has enable-switchport, and its port-vlan config needs the bridge, so
+   when network-instances and interfaces are loaded as separate sections the ports
+   ride along with the interfaces section instead. #}
+{% set mode = bridge_mode if bridge_mode is defined else "full" %}
+{% if (vlans_by_vid or bridge_ports) and not (mode == "ports-only" and not bridge_ports) %}
+    <network-instance>
+      <instance-name>{{ bridge_id }}</instance-name>
+      <instance-type>l2ni</instance-type>
+      <config>
+        <instance-name>{{ bridge_id }}</instance-name>
+        <instance-type>l2ni</instance-type>
+      </config>
+      <bridge xmlns="{{ ns.bridge }}">
+    {% if mode != "ports-only" %}
+        <config>
+          <protocol>rstp-vlan-bridge</protocol>
+        </config>
+    {% endif %}
+    {% if mode != "no-ports" %}
+        <bridge-ports>
+    {% for name in bridge_ports %}
+          <interface>
+            <name>{{ name | e }}</name>
+            <config>
+              <name>{{ name | e }}</name>
+            </config>
+          </interface>
+    {% endfor %}
+        </bridge-ports>
+    {% endif %}
+    {% if mode != "ports-only" %}
+        <vlans xmlns="{{ ns.vlan }}">
+    {% for vid in vlans_by_vid | sort %}
+          <vlan>
+            <vlan-id>{{ vid }}</vlan-id>
+            <config>
+              <vlan-id>{{ vid }}</vlan-id>
+            </config>
+            <customer-vlan>
+              <config>
+                <type>customer</type>
+                <name>{{ vlans_by_vid[vid].name | replace(' ', '_') | e }}</name>
+                <state>enable</state>
+              </config>
+            </customer-vlan>
+          </vlan>
+    {% endfor %}
+        </vlans>
+    {% endif %}
+      </bridge>
+    </network-instance>
+{% endif %}

@@ -11,6 +11,7 @@ set interfaces {{ interface.name | replace(".", " unit ") }} disable
             {% if ip.role == 'vrrp' %}
                 {% set is_primary = ip.cf.get('PRIMARY') %}
                 {% set prio = "250" if is_primary else "200" %}
+                {% set prio = "1" if is_maintenance else prio %}
                 {% set vrrpgroup = ip.cf.VRRP_GROUP if (ip.cf.VRRP_GROUP is defined and ip.cf.VRRP_GROUP != None) else 1 %}
                 {% set _ = ns.virt_gw.update({"vrrp-group": vrrpgroup}) %}
                 {% set _ = ns.virt_gw.update({"virtual-address": ip.address.ip}) %}

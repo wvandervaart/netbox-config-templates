@@ -1,0 +1,112 @@
+{# OcNOS SP: services run in the built-in "management" VRF (eth0) #}
+{% import 'common/ocnos/ns.j2' as ns %}
+<system-info xmlns="{{ ns.system }}">
+  <config>
+    <hostname>{{ device.name | e }}</hostname>
+  </config>
+  <clock>
+    <config>
+      {# OcNOS only accepts a city name (see `show timezone`), not the full tz path #}
+      <timezone-name>{{ utility.timezone.split('/')[-1] | e }}</timezone-name>
+    </config>
+  </clock>
+</system-info>
+{# ocnos_pw is the hash as shown by `show running-config` on an OcNOS box,
+   loaded as password-hashed so it isn't re-hashed #}
+{% set ocnos_users = [] %}
+{% for user in users.exampleorg %}
+    {% for system in user.systems %}
+        {% if system._name is defined and system._name == 'ocnos' and user.ocnos_pw is defined %}
+            {% set _ = ocnos_users.append((user, system)) %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{% if ocnos_users %}
+<user-management xmlns="{{ ns.user }}">
+  <users>
+    {% for user, system in ocnos_users %}
+    <user>
+      <username>{{ user._name | e }}</username>
+      <config>
+        <username>{{ user._name | e }}</username>
+        <role>{{ system.class | e }}</role>
+        <password-hashed>{{ user.ocnos_pw | e }}</password-hashed>
+      </config>
+    </user>
+    {% endfor %}
+  </users>
+</user-management>
+{% endif %}
+<ntp xmlns="{{ ns.ntp }}">
+  <vrfs>
+    <vrf>
+      <vrf-name>management</vrf-name>
+      <config>
+        <vrf-name>management</vrf-name>
+        <feature-enable/>
+      </config>
+      <servers>
+{% for ntp in utility.ntp %}
+        <server>
+          <server-address>{{ ntp | e }}</server-address>
+          <config>
+            <server-address>{{ ntp | e }}</server-address>
+          </config>
+        </server>
+{% endfor %}
+      </servers>
+    </vrf>
+  </vrfs>
+</ntp>
+<dns xmlns="{{ ns.dns }}">
+  <vrfs>
+    <vrf>
+      <vrf-name>management</vrf-name>
+      <config>
+        <vrf-name>management</vrf-name>
+        <lookup-enabled/>
+      </config>
+      <servers>
+{% for ns_addr in utility.dns %}
+        <server>
+          <address>{{ ns_addr | e }}</address>
+          <config>
+            <address>{{ ns_addr | e }}</address>
+          </config>
+        </server>
+{% endfor %}
+      </servers>
+    </vrf>
+  </vrfs>
+</dns>
+<logging xmlns="{{ ns.logging }}">
+  <remote-logging>
+    <config>
+      <enable-rsyslog/>
+    </config>
+    <remote-servers>
+      <remote-server>
+        <vrf>management</vrf>
+        <config>
+          <vrf>management</vrf>
+        </config>
+        <servers>
+{% for syslog in utility.syslog %}
+          <server>
+            <address>{{ syslog._name | e }}</address>
+            <config>
+              <address>{{ syslog._name | e }}</address>
+              {# mandatory in the model; 7 (debug) is the CLI default when none is given #}
+              <severity>7</severity>
+    {# OcNOS only allows a non-default port in the 1024-65535 range #}
+    {% if syslog.port is defined and syslog.port | int >= 1024 %}
+              <port>{{ syslog.port }}</port>
+    {% endif %}
+            </config>
+          </server>
+{% endfor %}
+        </servers>
+      </remote-server>
+    </remote-servers>
+  </remote-logging>
+</logging>

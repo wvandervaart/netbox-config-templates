@@ -1,0 +1,20 @@
+{# OcNOS: loopbacks are `loopbackN` - the one(s) without a VRF are global, the
+   rest are bound to their VRF. Unlike the built-in `lo` (whose primary is
+   127.0.0.1/8), a `loopbackN` takes its first IPv4 as primary - only any
+   further IPv4s are secondary (same as router/ocnos/interfaces/routed.j2).
+   collect() fills the per-interface dict router/ocnos/interfaces/main.j2 serializes. #}
+{% macro collect(interface, cfg) %}
+    {% if interface.enabled == true and interface.name.startswith('loopback') %}
+        {% set vrfname = interface.vrf.name if interface.vrf.name is defined else "global" %}
+        {% set _ = cfg.update({"description": "Loopback :: vrf:" ~ vrfname}) %}
+        {% if vrfname != "global" %}
+            {% set _ = cfg.update({"vrf": vrfname}) %}
+        {% endif %}
+        {% for ip in interface.ip_addresses.all() %}
+            {% set addrs = cfg.setdefault("ipv6" if ip.family == 6 else "ipv4", []) %}
+            {% if ip.address | string not in addrs %}
+                {% set _ = addrs.append(ip.address | string) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endmacro %}

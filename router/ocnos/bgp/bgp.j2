@@ -1,0 +1,249 @@
+{# Two passes over bgp_sessions, like router/eos/bgp/bgp.j2: first collect which peer-groups,
+   address families and VRFs are in use (no output), then render. OcNOS specifics:
+   - peer-groups must exist before a neighbor can join one, so they're rendered first
+   - `neighbor X peer-group` is router-mode only, so VRF neighbors don't join a peer-group;
+     their peer-group's policy is applied to each neighbor directly instead
+   - route-maps / maximum-prefix / next-hop-self are address-family settings, and the
+     model holds one route-map per direction - with several, the last one is used
+     (what the CLI's last `neighbor X route-map` line did) and the rest noted in a comment
+   - VRF neighbors (address-family-vrfs/vrf-peers) have no next-hop-self in the model
+   - `redistribute` needs a route-map in the model: RM_REDIST_ALL (common/ocnos/bgp/policy.j2)
+   Rendered as the ipi-bgp <bgp-instances> subtree, inside the <bgp> container
+   common/ocnos/bgp/policy.j2 opens (see common/ocnos/ns.j2). #}
+{% set ns = namespace(enabled_vrfs=[], has_v6=False) %}
+{% set global_pgids = [] %}
+{% set pg_families = {} %}
+{% set pg_as = {} %}
+{% set vrf_families = {} %}
+{% for peer in bgp_sessions %}
+    {% set vrf = peer.local_address.vrf %}
+    {% set family = 6 if ':' in peer.remote_address.address.ip | string else 4 %}
+    {% if vrf.name is defined %}
+        {% if vrf not in ns.enabled_vrfs %}
+            {% set _ = ns.enabled_vrfs.append(vrf) %}
+        {% endif %}
+        {% set _ = vrf_families.setdefault(vrf.name, []).append(family) %}
+    {% elif peer.peer_group != None %}
+        {% if peer.peer_group.id not in global_pgids %}
+            {% set _ = global_pgids.append(peer.peer_group.id) %}
+        {% endif %}
+        {% set _ = pg_families.setdefault(peer.peer_group.id, []).append(family) %}
+        {# OcNOS wants the peer-group's remote AS before any of its address-family settings #}
+        {% set _ = pg_as.setdefault(peer.peer_group.id, peer.remote_as.asn) %}
+        {% if family == 6 %}
+            {% set ns.has_v6 = True %}
+        {% endif %}
+    {% elif family == 6 %}
+        {% set ns.has_v6 = True %}
+    {% endif %}
+{% endfor %}
+{# -- per-address-family settings taken from a peer-group, for the peer-group itself
+   or (in a VRF) for each of its member neighbors ------------------------------- #}
+{% macro next_hop_self(pg) -%}
+{%- if pg != None -%}
+{# BGP_NEXTHOP, or a `next-hop self` set-action in any of its export policies (a
+   neighbor option on OcNOS, so it can't be per-route - common/ocnos/bgp/policy.j2
+   leaves it out of the route-map) #}
+{%- set nh = namespace(self=pg.cf.BGP_NEXTHOP is defined and pg.cf.BGP_NEXTHOP == "self") -%}
+{%- for policy in pg.export_policies.all() -%}
+{%- for rule in policy.rules.all() -%}
+{%- set actionss = rule.set_actions if (rule.set_actions is iterable and rule.set_actions is not string and rule.set_actions is not mapping) else [rule.set_actions] -%}
+{%- for a in actionss if a is mapping and a.name == "next-hop" and a.action == "self" -%}
+{%- set nh.self = True -%}
+{%- endfor -%}
+{%- endfor -%}
+{%- endfor -%}
+{{- nh.self -}}
+{%- endif -%}
+{%- endmacro %}
+{% macro af_containers(pg, indent) %}
+{% if pg != None %}
+{% if pg.cf.PREFIX_LIMIT is defined and pg.cf.PREFIX_LIMIT is integer %}
+{{ indent }}<maximum-prefixes>
+{{ indent }}  <maximum-prefix>
+{{ indent }}    <prefix-count>{{ pg.cf.PREFIX_LIMIT }}</prefix-count>
+{{ indent }}    <config>
+{{ indent }}      <prefix-count>{{ pg.cf.PREFIX_LIMIT }}</prefix-count>
+{{ indent }}    </config>
+{{ indent }}  </maximum-prefix>
+{{ indent }}</maximum-prefixes>
+{% endif %}
+{% set maps = [] %}
+{% for direction, policies in [("out", pg.export_policies.all() | list), ("in", pg.import_policies.all() | list)] if policies %}
+{% if policies | length > 1 %}
+{{ indent }}<!-- {{ pg.name | replace('--', '- ') | e }} {{ direction }}: one route-map per direction - {{ policies[:-1] | map(attribute='name') | join(', ') | replace('--', '- ') | e }} not applied -->
+{% endif %}
+{% set _ = maps.append((direction, policies[-1].name)) %}
+{% endfor %}
+{% if maps %}
+{{ indent }}<route-map-filters>
+{% for direction, name in maps %}
+{{ indent }}  <route-map-filter>
+{{ indent }}    <route-map-direction>{{ direction }}</route-map-direction>
+{{ indent }}    <config>
+{{ indent }}      <route-map-name>{{ name | e }}</route-map-name>
+{{ indent }}      <route-map-direction>{{ direction }}</route-map-direction>
+{{ indent }}    </config>
+{{ indent }}  </route-map-filter>
+{% endfor %}
+{{ indent }}</route-map-filters>
+{% endif %}
+{% endif %}
+{% endmacro %}
+{% macro passwords(pg, indent) %}
+{% if pg != None and pg.cf.AUTH_KEY is defined and pg.cf.AUTH_KEY is string %}
+{{ indent }}<bgp-passwords>
+{{ indent }}  <bgp-password>
+{{ indent }}    <password>{{ pg.cf.AUTH_KEY | e }}</password>
+{{ indent }}    <config>
+{{ indent }}      <password>{{ pg.cf.AUTH_KEY | e }}</password>
+{{ indent }}      <auth-key-encrypt>0</auth-key-encrypt>
+{{ indent }}    </config>
+{{ indent }}  </bgp-password>
+{{ indent }}</bgp-passwords>
+{% endif %}
+{% endmacro %}
+{% macro afi(family) %}{{ 'ipv6' if family == 6 else 'ipv4' }}{% endmacro %}
+  <bgp-instances>
+    <bgp-instance>
+      <bgp-as>{{ bgp.asn }}</bgp-as>
+      <config>
+        <bgp-as>{{ bgp.asn }}</bgp-as>
+        <router-id>{{ device.primary_ip.address.ip }}</router-id>
+      </config>
+      <address-families>
+{% for family in [4, 6] if family == 4 or ns.has_v6 %}
+        <address-family>
+          <afi>{{ afi(family) }}</afi>
+          <safi>unicast</safi>
+          <config>
+            <afi>{{ afi(family) }}</afi>
+            <safi>unicast</safi>
+          </config>
+          <maximum-paths>
+            <config>
+              <ebgp-max-path>8</ebgp-max-path>
+              <ibgp-max-path>8</ibgp-max-path>
+            </config>
+          </maximum-paths>
+        </address-family>
+{% endfor %}
+      </address-families>
+{# peer-groups precede their members, as on the CLI #}
+      <peer-groups>
+{% for pg in bgp_peer_groups if pg.id in global_pgids %}
+        <peer-group>
+          <peer-group-tag>{{ pg.name | e }}</peer-group-tag>
+          <config>
+            <peer-group-tag>{{ pg.name | e }}</peer-group-tag>
+            <peer-group-range>static</peer-group-range>
+            <peer-as>{{ pg_as[pg.id] }}</peer-as>
+          </config>
+{{ passwords(pg, "          ") -}}
+          <address-families>
+    {% for family in [4, 6] if family in pg_families[pg.id] and (family == 4 or ns.has_v6) %}
+            <address-family>
+              <afi>{{ afi(family) }}</afi>
+              <safi>unicast</safi>
+              <config>
+                <afi>{{ afi(family) }}</afi>
+                <safi>unicast</safi>
+                <activate/>
+        {% if next_hop_self(pg) == "True" %}
+                <next-hop-self/>
+        {% endif %}
+              </config>
+{{ af_containers(pg, "              ") -}}
+            </address-family>
+    {% endfor %}
+          </address-families>
+        </peer-group>
+{% endfor %}
+      </peer-groups>
+      <peers>
+{% for peer in bgp_sessions if peer.local_address.vrf.name is not defined %}
+        <peer>
+          <peer-address>{{ peer.remote_address.address.ip }}</peer-address>
+          <config>
+            <peer-address>{{ peer.remote_address.address.ip }}</peer-address>
+            <peer-as>{{ peer.remote_as.asn }}</peer-as>
+    {% if peer.description is defined and peer.description != "" %}
+            <peer-description>{{ peer.description | e }}</peer-description>
+    {% endif %}
+    {% if peer.peer_group != None %}
+            <mapped-peer-group-tag>{{ peer.peer_group.name | e }}</mapped-peer-group-tag>
+    {% endif %}
+          </config>
+    {% if peer.peer_group == None and ':' in peer.remote_address.address.ip | string %}
+          <address-families>
+            <address-family>
+              <afi>ipv6</afi>
+              <safi>unicast</safi>
+              <config>
+                <afi>ipv6</afi>
+                <safi>unicast</safi>
+                <activate/>
+              </config>
+            </address-family>
+          </address-families>
+    {% endif %}
+        </peer>
+{% endfor %}
+      </peers>
+{% if ns.enabled_vrfs %}
+      <address-family-vrfs>
+    {% for vrf in ns.enabled_vrfs %}
+        {% for family in [4, 6] if family in vrf_families[vrf.name] %}
+        <address-family-vrf>
+          <afi>{{ afi(family) }}</afi>
+          <safi>unicast</safi>
+          <vrf-name>{{ vrf.name | e }}</vrf-name>
+          <config>
+            <afi>{{ afi(family) }}</afi>
+            <safi>unicast</safi>
+            <vrf-name>{{ vrf.name | e }}</vrf-name>
+          </config>
+          <maximum-paths>
+            <config>
+              <ebgp-max-path>64</ebgp-max-path>
+              <ibgp-max-path>64</ibgp-max-path>
+            </config>
+          </maximum-paths>
+          <route-redistribute-lists>
+            {% for proto in ["connected", "static"] %}
+            <route-redistribute-list>
+              <protocol-type>{{ proto }}</protocol-type>
+              <config>
+                <protocol-type>{{ proto }}</protocol-type>
+                <redist-route-map-name>RM_REDIST_ALL</redist-route-map-name>
+              </config>
+            </route-redistribute-list>
+            {% endfor %}
+          </route-redistribute-lists>
+          <vrf-peers>
+            {% for peer in bgp_sessions if peer.local_address.vrf == vrf and (6 if ':' in peer.remote_address.address.ip | string else 4) == family %}
+            <vrf-peer>
+              <peer-address>{{ peer.remote_address.address.ip }}</peer-address>
+              <config>
+                <peer-address>{{ peer.remote_address.address.ip }}</peer-address>
+                <peer-as>{{ peer.remote_as.asn }}</peer-as>
+                {% if peer.description is defined and peer.description != "" %}
+                <peer-description>{{ peer.description | e }}</peer-description>
+                {% endif %}
+                <activate/>
+              </config>
+                {% if next_hop_self(peer.peer_group) == "True" %}
+              <!-- next-hop-self for {{ peer.remote_address.address.ip }} not set: VRF neighbors have no next-hop-self in the model -->
+                {% endif %}
+{{ af_containers(peer.peer_group, "              ") -}}
+{{ passwords(peer.peer_group, "              ") -}}
+            </vrf-peer>
+            {% endfor %}
+          </vrf-peers>
+        </address-family-vrf>
+        {% endfor %}
+    {% endfor %}
+      </address-family-vrfs>
+{% endif %}
+    </bgp-instance>
+  </bgp-instances>

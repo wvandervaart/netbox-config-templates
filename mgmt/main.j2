@@ -1,7 +1,7 @@
 {# fetched once and reused by every include below - avoids re-querying + N+1 lookups per partial #}
 {% set device_interfaces = device.interfaces.all().select_related('vrf', 'untagged_vlan', 'lag', 'parent').prefetch_related('tagged_vlans', 'tags', 'ip_addresses', '_path', 'cable__terminations') | list %}
 {# site-scoped maintenance VLAN - kept in sync with the identical copies in the other 4 junos mains #}
-{% set maintenance_vlan = ipam.VLAN.objects.filter(site=device.site, tags__name='maintenance').first() %}
+{% set maintenance_vlan = ipam.VLAN.objects.filter(tags__name='maintenance').first() %}
 {% include 'mgmt/system.j2' %}
 {% include 'common/junos/system/system.j2' %}
 {% include 'common/junos/system/ntp.j2' %}

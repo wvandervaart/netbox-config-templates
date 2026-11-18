@@ -25,3 +25,26 @@ def rendered_lines():
         return {line.strip() for line in output.splitlines() if line.strip()}
 
     return _lines
+
+# router/ocnos is registered in NetBox with environment params
+# {"trim_blocks": true, "lstrip_blocks": true} (see CLAUDE.md) - render it the same way
+OCNOS_ENV_PARAMS = {"trim_blocks": True, "lstrip_blocks": True}
+
+
+@pytest.fixture(scope="session")
+def ocnos_env():
+    return jinja2.Environment(loader=jinja2.FileSystemLoader(str(REPO_ROOT)), **OCNOS_ENV_PARAMS)
+
+
+@pytest.fixture
+def render_xml(ocnos_env):
+    """Render a NETCONF-XML template (router/ocnos) with NetBox's environment params
+    for it and parse it - a parse error fails the test, so every user also checks
+    the payload is well-formed. Returns (root, raw_output)."""
+    from ocnos_xml import parse
+
+    def _render_xml(template_path, context):
+        output = ocnos_env.get_template(template_path).render(**context)
+        return parse(output), output
+
+    return _render_xml

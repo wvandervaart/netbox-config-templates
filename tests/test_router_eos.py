@@ -39,7 +39,7 @@ def test_loopback_vrf_addressing(render, rendered_lines):
     lines = rendered_lines(render(TEMPLATE, load_context(DEVICE)))
     assert 'description "Loopback :: vrf:internet"' in lines
     assert "vrf internet" in lines
-    assert "ip address 198.18.0.35/32" in lines
+    assert "ip address 198.18.0.234/32" in lines
 
 
 def test_bgp_router_id(render, rendered_lines):
@@ -50,8 +50,8 @@ def test_bgp_router_id(render, rendered_lines):
 
 def test_bgp_external_peer_with_description(render, rendered_lines):
     lines = rendered_lines(render(TEMPLATE, load_context(DEVICE)))
-    assert "neighbor 198.18.0.14 remote-as 60781" in lines
-    assert "neighbor 198.18.0.14 description LW_1" in lines
+    assert "neighbor 198.18.0.122 remote-as 60781" in lines
+    assert "neighbor 198.18.0.122 description LW_1" in lines
 
 
 def test_bgp_peer_group_route_map(render, rendered_lines):

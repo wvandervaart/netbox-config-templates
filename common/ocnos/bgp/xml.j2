@@ -1,0 +1,54 @@
+{# Shared prefix-list XML for common/ocnos/bgp/{prefix-list,policy}.j2, which both
+   render entries into the single <prefixes> container policy.j2 opens.
+   `afi` is "ip"/"ipv4" or "ipv6"; `entries` is a list of {action, prefix, ge, le}
+   (ge/le optional), numbered from `seqs` (list) or 1..n. #}
+{% macro prefix_list(afi, name, entries, seqs=none) %}
+    {% set v6 = afi == 'ipv6' %}
+  <prefix>
+    <prefix-list-name>{{ name | e }}</prefix-list-name>
+    <prefix-list-type>{{ 'ipv6' if v6 else 'ip' }}</prefix-list-type>
+    <config>
+      <prefix-list-name>{{ name | e }}</prefix-list-name>
+      <prefix-list-type>{{ 'ipv6' if v6 else 'ip' }}</prefix-list-type>
+    </config>
+    <prefix-entries>
+    {% for e in entries %}
+        {% set seq = seqs[loop.index0] if seqs else loop.index %}
+        {% set addr = 'ipv6-prefix-addr' if v6 else 'prefix-addr' %}
+        {% set action = e.action | default('permit') %}
+        {# OcNOS requires len < ge <= le ("Invalid prefix range"): a bound at or below the
+           prefix length is implied by it, so it's left out rather than rejected #}
+        {% set plen = (e.prefix | string).split('/')[1] | int if '/' in e.prefix | string else (128 if v6 else 32) %}
+        {% set ge = e.ge if (e.ge is defined and e.ge is not none and e.ge | int > plen) else none %}
+        {% set le = e.le if (e.le is defined and e.le is not none and e.le | int > plen) else none %}
+      <prefix-entry>
+        <sequence-id>{{ seq }}</sequence-id>
+        <config>
+          <sequence-id>{{ seq }}</sequence-id>
+        </config>
+        <{{ 'ipv6' if v6 else 'ipv4' }}>
+          <entry>
+            <action>{{ action }}</action>
+            <{{ addr }}>{{ e.prefix | e }}</{{ addr }}>
+            <config>
+              <action>{{ action }}</action>
+              <{{ addr }}>{{ e.prefix | e }}</{{ addr }}>
+        {# CLI ge / le #}
+        {% if ge is not none %}
+              <minimum-prefix-length-match>{{ ge }}</minimum-prefix-length-match>
+        {% endif %}
+        {% if le is not none %}
+              <maximum-prefix-length-match>{{ le }}</maximum-prefix-length-match>
+        {% endif %}
+            </config>
+          </entry>
+        </{{ 'ipv6' if v6 else 'ipv4' }}>
+      </prefix-entry>
+    {% endfor %}
+    </prefix-entries>
+  </prefix>
+{% endmacro %}
+{# an XML comment carrying free text - `--` is illegal inside one #}
+{% macro comment(text) -%}
+<!-- {{ (text | string).replace('--', '- ') | e }} -->
+{%- endmacro %}

@@ -1,0 +1,44 @@
+{# L3 ports, sub-interfaces, vlanB.V SVIs and poN bundles. Anything with no IPs is
+   left alone (LAG members are handled by lag.j2). VRRP is its own top-level
+   container in OcNOS rather than interface config - the virtual addresses are
+   collected into cfg.vrrp and router/ocnos/interfaces/main.j2 renders them after
+   the interface list.
+   collect() fills the per-interface dict router/ocnos/interfaces/main.j2 serializes. #}
+{% import 'common/ocnos/interfaces/description.j2' as d %}
+{% macro collect(interface, cfg) %}
+    {% set ips = interface.ip_addresses.all() | list %}
+    {% if interface.name != 'eth0' and not interface.name.startswith('loopback') and not interface.cf.get('FABRIC') and ips %}
+        {% set description = d.describe(interface) %}
+        {# vlanB.V is the SVI for VLAN V in bridge B, not a dot1q sub-interface #}
+        {% if '.' in interface.name and not interface.name.startswith('vlan') %}
+            {% set _ = cfg.update({"dot1q": interface.name.split('.')[1]}) %}
+        {% endif %}
+        {% if interface.enabled != true %}
+            {% set _ = cfg.update({"shutdown": True}) %}
+        {% endif %}
+        {% if description != "" %}
+            {% set _ = cfg.update({"description": description}) %}
+        {% endif %}
+        {% if interface.mtu is defined and interface.mtu | int > 0 and interface.type != "lag" %}
+            {% set _ = cfg.update({"mtu": interface.mtu}) %}
+        {% endif %}
+        {% if interface.vrf != None and interface.vrf.name is defined %}
+            {% set _ = cfg.update({"vrf": interface.vrf.name}) %}
+        {% endif %}
+        {% for ip in ips %}
+            {% if ip.role is defined and ip.role == 'vrrp' %}
+                {% set _ = cfg.setdefault("vrrp", []).append({
+                    "group": ip.cf.VRRP_GROUP if (ip.cf.VRRP_GROUP is defined and ip.cf.VRRP_GROUP != None) else 1,
+                    "family": ip.family,
+                    "address": ip.address.ip | string,
+                    "priority": 250 if ip.cf.get('PRIMARY') else 200
+                }) %}
+            {% else %}
+                {% set addrs = cfg.setdefault("ipv6" if ip.family == 6 else "ipv4", []) %}
+                {% if ip.address | string not in addrs %}
+                    {% set _ = addrs.append(ip.address | string) %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endmacro %}

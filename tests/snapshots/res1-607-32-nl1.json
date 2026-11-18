@@ -3220,7 +3220,7 @@
       "id": 26413,
       "ip_addresses": [
         {
-          "address": "198.18.0.70/30",
+          "address": "198.18.1.146/30",
           "family": 4,
           "status": "active",
           "tags": []
@@ -3326,7 +3326,7 @@
       "id": 26414,
       "ip_addresses": [
         {
-          "address": "198.18.0.63/29",
+          "address": "198.18.1.23/29",
           "family": 4,
           "status": "active",
           "tags": []
@@ -3512,8 +3512,8 @@
         "BFD": false,
         "BFD_INTERVAL": null
       },
-      "next_hop": "198.18.0.71",
-      "prefix": "198.18.0.72/32",
+      "next_hop": "198.18.1.147",
+      "prefix": "198.18.1.148/32",
       "vrf": "VMX"
     },
     {

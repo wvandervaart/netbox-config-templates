@@ -260,12 +260,12 @@
       "description": "lb01-jx21-ams1",
       "export_policies": [],
       "import_policies": [],
-      "local_address": "198.18.0.47/26",
+      "local_address": "198.18.0.247/26",
       "local_address_family": 4,
       "local_as": 65000,
       "name": "leaf1-610-12-ams1--lb01-jx21-ams1",
       "peer_group": "SGLB",
-      "remote_address": "198.18.0.44/26",
+      "remote_address": "198.18.0.244/26",
       "remote_as": 65004,
       "status": "active",
       "tags": []
@@ -280,12 +280,12 @@
       "description": "lb01-mx08-ams1",
       "export_policies": [],
       "import_policies": [],
-      "local_address": "198.18.0.47/26",
+      "local_address": "198.18.0.247/26",
       "local_address_family": 4,
       "local_as": 65000,
       "name": "leaf1-610-12-ams1--lb01-mx08-ams1",
       "peer_group": "SGLB",
-      "remote_address": "198.18.0.43/26",
+      "remote_address": "198.18.0.243/26",
       "remote_as": 65004,
       "status": "active",
       "tags": []
@@ -5522,13 +5522,13 @@
       "id": 20214,
       "ip_addresses": [
         {
-          "address": "198.18.0.60/26",
+          "address": "198.18.1.20/26",
           "family": 4,
           "status": "active",
           "tags": []
         },
         {
-          "address": "198.18.0.61/26",
+          "address": "198.18.1.21/26",
           "family": 4,
           "status": "active",
           "tags": []
@@ -5581,13 +5581,13 @@
       "id": 19365,
       "ip_addresses": [
         {
-          "address": "198.18.0.47/26",
+          "address": "198.18.0.247/26",
           "family": 4,
           "status": "active",
           "tags": []
         },
         {
-          "address": "198.18.0.48/26",
+          "address": "198.18.0.248/26",
           "family": 4,
           "status": "active",
           "tags": []
@@ -6963,7 +6963,7 @@
         "BFD_INTERVAL": null
       },
       "next_hop": "10.99.0.13",
-      "prefix": "198.18.0.66/32",
+      "prefix": "198.18.1.54/32",
       "vrf": "SGBC"
     },
     {
@@ -7077,7 +7077,7 @@
   ],
   "vlans": {
     "VLAN1108": {
-      "description": "evpn-public-198.18.0.59/26",
+      "description": "evpn-public-198.18.1.19/26",
       "l2vpn_identifier": 301108,
       "name": "VLAN1108",
       "tags": [],

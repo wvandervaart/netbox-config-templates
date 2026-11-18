@@ -1,0 +1,29 @@
+{# fetched once and reused by every bgp/* include below - avoids re-querying + N+1 lookups per partial.
+   Same field set as common/eos/bgp/main.j2 (the ocnos bgp partials are ports of the eos ones
+   and read the same relations) plus rules__match_aspath_list, which only ocnos policy.j2 renders -
+   keep the two in sync. router/ocnos sets ocnos_bgp_role_partial
+   before including this file. #}
+{% set bgp_sessions = netbox_bgp.BGPSession.objects.filter(device=device).select_related(
+    'local_address__vrf', 'remote_address__vrf', 'local_as', 'remote_as', 'peer_group'
+).prefetch_related(
+    'export_policies__rules__match_ip_address',
+    'export_policies__rules__match_ipv6_address',
+    'export_policies__rules__match_community',
+    'export_policies__rules__match_aspath_list',
+    'import_policies__rules__match_ip_address',
+    'import_policies__rules__match_ipv6_address',
+    'import_policies__rules__match_community',
+    'import_policies__rules__match_aspath_list',
+    'peer_group__export_policies__rules__match_ip_address',
+    'peer_group__export_policies__rules__match_ipv6_address',
+    'peer_group__export_policies__rules__match_community',
+    'peer_group__export_policies__rules__match_aspath_list',
+    'peer_group__import_policies__rules__match_ip_address',
+    'peer_group__import_policies__rules__match_ipv6_address',
+    'peer_group__import_policies__rules__match_community',
+    'peer_group__import_policies__rules__match_aspath_list'
+) | list %}
+{% set bgp_peer_groups = netbox_bgp.BGPPeerGroup.objects.all().prefetch_related('export_policies', 'import_policies') | list %}
+{# policy.j2 includes prefix-list.j2 inside its one <prefixes> container, and
+   ocnos_bgp_role_partial inside its one <bgp> container (as-path lists live there too) #}
+{% include 'common/ocnos/bgp/policy.j2' %}

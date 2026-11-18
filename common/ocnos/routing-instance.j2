@@ -1,0 +1,82 @@
+{# L3 VRFs as ipi-network-instance entries (type vrf), each carrying its RD/RTs
+   (ipi-bgp-vrf) and static routes (common/ocnos/static-routes.j2), plus the
+   built-in "default" instance for global static routes. Rendered inside the one
+   <network-instances> container router/ocnos/main.j2 opens - common/ocnos/vlan.j2
+   adds the bridge to the same container. "management" is built into OcNOS (eth0
+   lives there) - never (re)defined here. #}
+{% import 'common/ocnos/ns.j2' as ns %}
+{% import 'common/ocnos/static-routes.j2' as static %}
+{% set nsv = namespace(enabled_vrfs=[]) %}
+{# VRF id -> first non-anycast IPv4 on a loopbackN bound to that VRF (its router-id,
+   same as common/junos/routing-instance.j2 picks lo0.N) #}
+{% set vrf_router_ids = {} %}
+{% for interface in device_interfaces %}
+    {% if interface.vrf.id is defined and interface.enabled == true and interface.vrf.name != 'management' and interface.name != 'eth0' %}
+        {% if interface.vrf not in nsv.enabled_vrfs %}
+            {% set _ = nsv.enabled_vrfs.append(interface.vrf) %}
+        {% endif %}
+        {% if interface.name.startswith('loopback') and interface.vrf.id not in vrf_router_ids %}
+            {% for ip in interface.ip_addresses.all() if ip.family == 4 and ip.role != 'anycast' %}
+                {% if loop.first %}
+                    {% set _ = vrf_router_ids.update({interface.vrf.id: ip.address.ip}) %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+{% set routes = {} %}
+{% set _ = static.collect(device.static_routes.all(), routes) %}
+{% for vrf in nsv.enabled_vrfs %}
+    {% set import_rts = vrf.import_targets.all() | map(attribute='name') | list %}
+    {% set export_rts = vrf.export_targets.all() | map(attribute='name') | list %}
+    <network-instance>
+      <instance-name>{{ vrf.name | e }}</instance-name>
+      <instance-type>vrf</instance-type>
+      <config>
+        <instance-name>{{ vrf.name | e }}</instance-name>
+        <instance-type>vrf</instance-type>
+      </config>
+      <vrf xmlns="{{ ns.vrf }}">
+        <config>
+          <vrf-name>{{ vrf.name | e }}</vrf-name>
+          <router-id>{{ vrf_router_ids.get(vrf.id, device.primary_ip.address.ip) }}</router-id>
+        </config>
+        <bgp-vrf xmlns="{{ ns.bgp_vrf }}">
+    {% if vrf.rd is defined and vrf.rd != None %}
+          <config>
+            <rd-string>{{ device.primary_ip.address.ip }}:{{ vrf.rd | e }}</rd-string>
+          </config>
+    {% endif %}
+          <route-targets>
+    {% for rt in import_rts + (export_rts | reject('in', import_rts) | list) %}
+            <route-target>
+              <rt-rd-string>{{ rt | e }}</rt-rd-string>
+              <config>
+                <rt-rd-string>{{ rt | e }}</rt-rd-string>
+                {# a bits leaf: "import export" is the CLI's `route-target both` #}
+                <direction>{{ ('import export' if rt in export_rts else 'import') if rt in import_rts else 'export' }}</direction>
+              </config>
+            </route-target>
+    {% endfor %}
+          </route-targets>
+        </bgp-vrf>
+      </vrf>
+    {% if routes.get(vrf.name) %}
+{{ static.static_routing(routes[vrf.name]) }}
+    {% endif %}
+    </network-instance>
+{% endfor %}
+{% if routes.get('default') %}
+    <network-instance>
+      <instance-name>default</instance-name>
+      <instance-type>vrf</instance-type>
+      <config>
+        <instance-name>default</instance-name>
+        <instance-type>vrf</instance-type>
+      </config>
+{{ static.static_routing(routes['default']) }}
+    </network-instance>
+{% endif %}
+{% for vrfname in routes if vrfname != 'default' and vrfname not in nsv.enabled_vrfs | map(attribute='name') | list %}
+    <!-- static routes for vrf {{ vrfname | replace('--', '- ') | e }} skipped: no enabled interface in that VRF on this device -->
+{% endfor %}
